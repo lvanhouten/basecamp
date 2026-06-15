@@ -74,12 +74,26 @@ class ListsScreen extends ConsumerWidget {
 }
 
 /// Small reusable single-field text dialog.
+///
+/// Serves both "add" and "rename": pass [initialValue] to pre-fill the field
+/// (the text is pre-selected so typing replaces it) and [actionLabel] to label
+/// the confirm button (defaults to `'Add'`; rename callers pass `'Save'`).
+/// Returns the trimmed text on confirm, or `null` on cancel.
 Future<String?> promptForText(
   BuildContext context, {
   required String title,
   required String hint,
+  String? initialValue,
+  String actionLabel = 'Add',
 }) {
-  final controller = TextEditingController();
+  final controller = TextEditingController(text: initialValue);
+  // Pre-select the seeded text so confirming a rename can replace it in one keystroke.
+  if (initialValue != null && initialValue.isNotEmpty) {
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: initialValue.length,
+    );
+  }
   return showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
@@ -97,7 +111,7 @@ Future<String?> promptForText(
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-          child: const Text('Add'),
+          child: Text(actionLabel),
         ),
       ],
     ),
