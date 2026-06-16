@@ -5,6 +5,7 @@ import '../../core/providers.dart';
 import '../../core/widgets/app_drawer.dart';
 import 'clock_tab.dart';
 import 'stopwatch_pane.dart';
+import 'timer_pane.dart';
 
 /// Clock — time tools grouped under one module: Alarms, a countdown Timer, and
 /// a Stopwatch, presented as three tabs. Carries the hub navigation drawer (the
@@ -35,6 +36,12 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
   /// wall clock (it kept persisted-timestamp truth across background, but its
   /// in-memory `_now` froze while the process was paused).
   final _stopwatchKey = GlobalKey<StopwatchPaneState>();
+
+  /// Lets the resume hook re-sync the Timer pane's display ticker to the wall
+  /// clock — same rationale as the stopwatch key. Remaining truth lives in each
+  /// timer's persisted `endsAt`, so this only snaps the displayed countdown the
+  /// instant the app returns (before the next ticker frame), not the data.
+  final _timerKey = GlobalKey<TimerPaneState>();
 
   @override
   void initState() {
@@ -69,7 +76,10 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
   /// persisted record is unchanged (timestamps, not ticking state); this only
   /// snaps the displayed value so it doesn't briefly show the stale pre-pause
   /// elapsed before the next ticker frame.
-  void _onResume() => _stopwatchKey.currentState?.resync();
+  void _onResume() {
+    _stopwatchKey.currentState?.resync();
+    _timerKey.currentState?.resync();
+  }
 
   @override
   void dispose() {
@@ -105,10 +115,11 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
       body: TabBarView(
         controller: _tabs,
         children: [
-          // Placeholder panes — replaced by later briefs (08 alarms, 05 timer).
-          // Each later pane drops in here for its tab.
+          // Index 0 (Alarms) is still a placeholder — replaced by 08.
           const _Placeholder(label: 'No alarms set'),
-          const _Placeholder(label: 'Set a countdown'),
+          // Index 1 (Timer) — the live countdown pane (05-timer-ui).
+          TimerPane(key: _timerKey),
+          // Index 2 (Stopwatch) — 03-stopwatch.
           StopwatchPane(key: _stopwatchKey),
         ],
       ),
