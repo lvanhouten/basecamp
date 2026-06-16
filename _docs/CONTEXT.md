@@ -19,20 +19,53 @@ _Avoid_: sub-app, tab, feature (informal).
 **In-progress activity**:
 An unfinished, resumable unit of work owned by a module and derived from
 persisted state (e.g. a workout with no finish time). It exists because the data
-says so — not because of any remembered navigation state.
+says so — not because of any remembered navigation state. A module may own
+**several at once** (Clock can have running Timers and a running Stopwatch
+together); the Brief summarizes them rather than assuming exactly one.
 _Avoid_: open activity. A module may name its own concretely (e.g. "active workout").
 
 **Resume**:
-Returning to an In-progress activity. Surfaced two ways: a banner on the Brief,
-and a module opening straight into its In-progress activity when entered.
+Returning to an In-progress activity. Surfaced two ways: on the Brief (a banner,
+or a counts summary for a multi-activity module), and a module opening straight
+into the relevant activity when entered. When a module has several, a fixed
+tool precedence picks which one it opens to (Clock: Stopwatch > Timer > Alarm).
 
 **Clock**:
 The time-tools module: Alarms, a Timer, and a Stopwatch.
 _Avoid_: Timers — the former module name, which collided with the Timer tool.
 
+**Tool**:
+One of the three time utilities _inside_ the Clock module: the Timer, the
+Stopwatch, and Alarms. Tools live under one Module; they are not themselves
+Modules (not drawer-reachable, not isolated from each other).
+_Avoid_: sub-module, sub-app, tab (a tab is how a tool happens to be presented,
+not what it is).
+
 **Timer**:
-The countdown tool *inside* Clock — one tool of three. Singular.
+The countdown tool _inside_ Clock — one tool of three. Singular.
 _Avoid_: using "Timer"/"Timers" to mean the Clock module.
+
+**Alarm**:
+A Clock entry that rings at a wall-clock time, one-off or recurring. Carries an
+**Enabled** state and (if recurring) a repeat rule. Rings via the OS even when
+the app is dead.
+
+**Snooze**:
+Defer a _ringing_ Alarm's current occurrence by a fixed interval; it re-rings
+after that interval. Affects only this occurrence, never the repeat rule.
+
+**Dismiss**:
+End a _ringing_ Alarm's current occurrence. A one-off Alarm becomes disabled
+(it is spent); a recurring Alarm stays **Enabled** and rings again at its next
+scheduled time. The ring-time "stop" action.
+_Avoid_: disarm, stop, cancel — and never let it mean "disable the whole alarm"
+(that is the **Enabled** toggle).
+
+**Enabled**:
+The list-level on/off state of an Alarm. Off means it never rings, even if
+recurring — the true "turn this alarm off." Distinct from **Dismiss**, which
+ends one occurrence only.
+_Avoid_: disarm, active.
 
 **Pin / Pinned**:
 Marking an entry as always-active so it floats to a dedicated section at the
@@ -56,9 +89,16 @@ operate on different scopes — never the same one.
 
 - The **Brief** summarizes and launches every **Module**.
 - A **Module** may own one **In-progress activity**, which the **Brief** surfaces for **Resume**.
-- **Clock** contains a **Timer**, one or more **Alarms**, and a **Stopwatch**.
+- **Clock** contains three **Tools**: a **Timer**, a **Stopwatch**, and **Alarms**.
+- A ringing **Alarm** can be **Snoozed** (re-rings later) or **Dismissed** (ends this
+  occurrence); its **Enabled** toggle is separate and governs whether it rings at all.
 
 ## Flagged ambiguities
 
 - "Timers" meant both the time-tools module and the countdown tool within it —
   resolved: the module is **Clock**, the countdown tool is **Timer**.
+- "sub-module" was used for Timer/Stopwatch/Alarms — resolved: these are **Tools**
+  inside the Clock **Module**, not modules of their own.
+- "Disarm" was used for the ring-time stop action — resolved: that action is
+  **Dismiss** (ends this occurrence only); disabling an alarm entirely is the
+  **Enabled** toggle.

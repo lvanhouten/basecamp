@@ -48,3 +48,8 @@ Resume banner — rather than from a remembered navigation stack.
   roots, not deep pushes.
 - If we later want to drawer-hop directly out of a deep sub-screen and return to it
   untouched, revisit the nested-navigator option.
+
+## Links
+
+- Amended by: ADR-0004 — a module may own *several* In-progress activities (Clock);
+  the Brief summarizes them as counts rather than a single Resume banner.
