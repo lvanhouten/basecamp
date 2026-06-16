@@ -6,7 +6,7 @@
 | 02-clock-shell     | integrated | 1 | e399524 | 7/7 | shell + ClockApi + repo skeleton + providers |
 | 06-alarm-recurrence | integrated | 1 | 6725369 | 8/8 | pure module |
 | 04-timer-data      | integrated | 2 | 3d78121 | 8/8 | Timers table (v3), ClockDao, NotificationScheduler, providers |
-| 03-stopwatch       | pending | 3 | — | — | extends ClockDao (ModuleData) + repo + providers |
+| 03-stopwatch       | integrated | 3 | 83e1f06 | 9/9 | ModuleData (clock/stopwatch), StopwatchPane, real watchStopwatchRunning |
 | 05-timer-ui        | pending | 3 | — | — | consumes 04's runningTimersProvider; TimerRow |
 | 07-alarm-data      | pending | 4 | — | — | codegen: Alarms table (v4), extends scheduler full-screen |
 | 08-alarm-ui        | pending | 5 | — | — | depends on 07 |
@@ -38,9 +38,12 @@
   - **schemaVersion now 3.** 07 adds a NEW `if (from < 4)` branch for Alarms — do NOT modify the existing branches. Migration-test style: seed prior schema in raw sqlite3, stamp user_version, open `AppDb.forTesting(NativeDatabase.opened(raw))`, assert table exists + old data preserved (see migration_v2_to_v3_test.dart).
   - Timers columns: id PK, label TEXT?, durationMs INT, endsAt DATETIME? (running incl. finished-past), remainingMs INT? (paused only), createdAt DATETIME default now. No status column. **Drift DateTime test gotcha:** Drift round-trips DateTime via Unix epoch in LOCAL zone — use local `DateTime(...)` literals in tests, not `DateTime.utc(...)`.
 
+- **03-stopwatch → [05,07,08]:** ModuleData stopwatch keyed `moduleId='clock', entryKey='stopwatch'` (consts `ClockDao.clockModuleId`/`stopwatchEntryKey`) — if 07 ever reuses the ModuleData lane, pick a different entryKey under 'clock'. Added `stopwatchStateProvider` (StreamProvider<StopwatchState>); `stopwatchRunningProvider` now REAL via `ClockApi.watchStopwatchRunning()` (streams the record's isRunning; fresh install ⇒ false). `StopwatchState` at lib/features/clock/data/stopwatch_state.dart is Clock-internal (not on ClockApi). `clock_screen.dart` Stopwatch tab (children[2]) is now `StopwatchPane(key: _stopwatchKey)`; `_onResume` calls `_stopwatchKey.currentState?.resync()` — **05/08 append to _onResume, don't replace.** TabBarView.children is now non-const. **05/08 widget tests mounting ClockScreen must override `dbProvider` with an in-memory DB** (the panes are DB-backed) — see the makeContainer() helper added to clock_screen_test.dart.
+
 ## Deviations
 
 - **01:** chose `stopwatchElapsed`/`countdownRemaining`/`pausedRemaining` signatures (routed to dependents). No downstream invalidated.
 - **06:** `weekdaySchedule→List<AlarmWeekdaySlot>` (new const type); added bit-convention helper exports. 07 depends on `AlarmWeekdaySlot` by name. No downstream invalidated.
 - **02:** `ClockScreen` is `ConsumerStatefulWidget` (needs TabController/AppLifecycleListener); Brief card shows alarms always + timer/stopwatch only when live; `core/app_module.dart` Clock case already existed. No downstream invalidated.
 - **04:** `TimerRow` row-class name (collision avoidance — routed to 05). Updated 2 wave-1 test files (widget_test.dart, clock_repository_test.dart) since making `watchRunningTimerCount` real broke their const-placeholder assumption — legitimate contract ripple, all green. Added `NoopNotificationScheduler`. pub get downgraded some transitive analyzer/test packages within constraints (flutter_local_notifications 18) — no source impact, 140 tests green. **No downstream brief invalidated.**
+- **03:** edited sibling `test/clock/clock_screen_test.dart` (02's) to add a `dbProvider` in-memory override — replacing the Stopwatch placeholder with a DB-backed pane made ClockScreen open the real Drift file under flutter_test; test-only fix required by the in-scope placeholder swap (routed to 05/08). Running count-up verified at the repo/clock-math layer rather than via live ticker frames (the pane Ticker reads the real wall clock). No downstream invalidated.
