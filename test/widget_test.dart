@@ -1,10 +1,13 @@
 import 'package:basecamp/app.dart';
 import 'package:basecamp/core/app_module.dart';
+import 'package:basecamp/core/db/app_db.dart';
 import 'package:basecamp/core/providers.dart';
 import 'package:basecamp/core/widgets/app_drawer.dart';
+import 'package:basecamp/features/clock/data/alarm_launch_router.dart';
 import 'package:basecamp/features/home/home_screen.dart';
 import 'package:basecamp/features/lists/data/lists_dao.dart';
 import 'package:basecamp/features/lists/lists_screen.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,12 +17,27 @@ import 'package:flutter_test/flutter_test.dart';
 /// is a real Drift query, so without these overrides the Brief card would open
 /// the real DB + notification scheduler during the test.
 final _dbStubs = [
+  // Point dbProvider at an in-memory database. The hub keeps the Clock module
+  // alive in its IndexedStack, and the Alarms tab (now a real pane,
+  // 08-alarm-ui) watches alarmsProvider / reads clockRepositoryProvider — both
+  // resolve dbProvider, which otherwise opens the real on-disk Drift file.
+  dbProvider.overrideWithValue(AppDb.forTesting(NativeDatabase.memory())),
   listCountProvider.overrideWith((ref) => Stream.value(0)),
   openItemCountProvider.overrideWith((ref) => Stream.value(0)),
   listsProvider.overrideWith((ref) => Stream.value(<TrackedListWithCount>[])),
   todaysAlarmCountProvider.overrideWith((ref) => Stream.value(0)),
   runningTimerCountProvider.overrideWith((ref) => Stream.value(0)),
   stopwatchRunningProvider.overrideWith((ref) => Stream.value(false)),
+  // The Alarms pane watches alarmsProvider; stub it to a plain stream so the
+  // pane doesn't open a live Drift query stream (whose disposal schedules a
+  // cleanup timer that outlives the one-pump boot test). clockRepositoryProvider
+  // is still real (over the in-memory db above) for the pane's
+  // notificationsAllowed read, but that's a plain getter — no query stream.
+  alarmsProvider.overrideWith((ref) => Stream.value(const <AlarmRow>[])),
+  // BasecampApp wraps the hub in an AlarmLaunchHost (08-alarm-ui) which reads
+  // the launch router post-frame; the real one hits the notifications plugin
+  // (unavailable in a test → crash / pending timer). Stub it to a no-op.
+  alarmLaunchRouterProvider.overrideWithValue(NoopAlarmLaunchRouter()),
 ];
 
 void main() {

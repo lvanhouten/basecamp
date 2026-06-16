@@ -388,4 +388,16 @@ class ClockRepository implements ClockApi {
     await _scheduler.cancel(alarmNotificationId(id, 0));
     await _scheduleAlarm(alarm, now ?? DateTime.now());
   }
+
+  /// Permanently remove the alarm with [id]: cancel every OS notification it may
+  /// have registered (all weekday slots + the one-off/snooze slot), then delete
+  /// the row. Cancelling FIRST is what keeps deletion leak-free — a row deleted
+  /// without tearing down its scheduled full-screen notifications would still
+  /// ring (the OS, not the row, holds the schedule — ADR-0003). Mirrors
+  /// `cancelTimer`. No-op-safe if the alarm was already gone (`_cancelAlarm`
+  /// cancels unconditionally; the delete simply affects no rows).
+  Future<void> deleteAlarm(int id) async {
+    await _cancelAlarm(id);
+    await _dao.deleteAlarm(id);
+  }
 }

@@ -39,8 +39,11 @@ void main() {
 
       // Hub drawer present on the module root. The Scaffold builds its `drawer`
       // lazily (only when opened), so assert the slot is wired rather than
-      // searching the live tree for the AppDrawer widget.
-      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+      // searching the live tree for the AppDrawer widget. The Alarms pane (now
+      // a real pane, 08-alarm-ui) nests its OWN Scaffold inside the body — like
+      // TimerPane — so scope to the ClockScreen's outer, drawer-bearing one
+      // (the first match, an ancestor of the TabBarView).
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
       expect(scaffold.drawer, isA<AppDrawer>());
 
       // Three tool tabs.

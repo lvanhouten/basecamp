@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../core/widgets/app_drawer.dart';
+import 'alarms_pane.dart';
 import 'clock_tab.dart';
 import 'stopwatch_pane.dart';
 import 'timer_pane.dart';
@@ -115,26 +116,16 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
       body: TabBarView(
         controller: _tabs,
         children: [
-          // Index 0 (Alarms) is still a placeholder — replaced by 08.
-          const _Placeholder(label: 'No alarms set'),
+          // Index 0 (Alarms) — the alarms list + editor (08-alarm-ui). Alarms
+          // are DB-streamed (alarmsProvider), so no resume-time recompute hook
+          // is needed here (unlike the timer/stopwatch display tickers).
+          const AlarmsPane(),
           // Index 1 (Timer) — the live countdown pane (05-timer-ui).
           TimerPane(key: _timerKey),
           // Index 2 (Stopwatch) — 03-stopwatch.
           StopwatchPane(key: _stopwatchKey),
         ],
       ),
-    );
-  }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(label, style: Theme.of(context).textTheme.headlineSmall),
     );
   }
 }
