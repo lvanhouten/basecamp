@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/clock/clock_tab.dart';
 import '../features/clock/data/clock_repository.dart';
 import '../features/clock/data/notification_scheduler.dart';
+import '../features/clock/data/stopwatch_state.dart';
 import '../features/lists/data/lists_dao.dart';
 import '../features/lists/data/lists_repository.dart';
 import 'app_module.dart';
@@ -115,8 +116,19 @@ final runningTimersProvider = StreamProvider<List<TimerRow>>(
   (ref) => ref.watch(clockRepositoryProvider).watchRunningTimers(),
 );
 
+// Backs the Brief card's stopwatch segment. Real as of 03-stopwatch: derived
+// from the persisted ModuleData record's `isRunning` (via the ClockApi).
 final stopwatchRunningProvider = StreamProvider<bool>(
   (ref) => ref.watch(clockApiProvider).watchStopwatchRunning(),
+);
+
+/// The single stopwatch's full persisted state (start segment, banked elapsed,
+/// running flag, laps). Backs the StopwatchPane (03-stopwatch); the pane derives
+/// its displayed time from this record + `now` via clock-math and an in-memory
+/// display ticker. Goes through the repository (not the narrow ClockApi)
+/// because [StopwatchState] is Clock-internal.
+final stopwatchStateProvider = StreamProvider<StopwatchState>(
+  (ref) => ref.watch(clockRepositoryProvider).watchStopwatch(),
 );
 
 /// The Clock module's selected tool tab. The Brief card writes it (via the

@@ -193,4 +193,44 @@ void main() {
       expect(await dao.watchRunningTimerCount(t0).first, 1);
     });
   });
+
+  group('stopwatch (ModuleData lane)', () {
+    test('watchStopwatch emits null until the record is first written',
+        () async {
+      expect(await dao.watchStopwatch().first, isNull);
+    });
+
+    test('writeStopwatch upserts a single record; round-trips the payload',
+        () async {
+      final payload = {
+        'startedAt': t0.millisecondsSinceEpoch,
+        'accumulatedMs': 1234,
+        'isRunning': true,
+        'laps': [100, 200],
+      };
+      await dao.writeStopwatch(payload);
+
+      final got = await dao.watchStopwatch().first;
+      expect(got, isNotNull);
+      expect(got!['startedAt'], t0.millisecondsSinceEpoch);
+      expect(got['accumulatedMs'], 1234);
+      expect(got['isRunning'], true);
+      expect(got['laps'], [100, 200]);
+    });
+
+    test('a second write replaces the record — never a second row', () async {
+      await dao.writeStopwatch({'accumulatedMs': 1, 'isRunning': false});
+      await dao.writeStopwatch({'accumulatedMs': 2, 'isRunning': true});
+
+      // watchSingleOrNull would throw if there were two rows for the key.
+      final got = await dao.watchStopwatch().first;
+      expect(got!['accumulatedMs'], 2);
+      expect(got['isRunning'], true);
+    });
+
+    test('writeStopwatch is keyed under (clock, stopwatch)', () {
+      expect(ClockDao.clockModuleId, 'clock');
+      expect(ClockDao.stopwatchEntryKey, 'stopwatch');
+    });
+  });
 }

@@ -15,7 +15,7 @@ part 'clock_dao.g.dart';
 ///
 /// Other modules never touch these tables — they go through the [ClockApi]
 /// facade (`clock_api.dart`) instead.
-@DriftAccessor(tables: [Timers])
+@DriftAccessor(tables: [Timers, ModuleData])
 class ClockDao extends DatabaseAccessor<AppDb> with _$ClockDaoMixin {
   ClockDao(super.db);
 
@@ -117,4 +117,50 @@ class ClockDao extends DatabaseAccessor<AppDb> with _$ClockDaoMixin {
   /// Removes a timer (cancel / dismiss-finished).
   Future<void> deleteTimer(int id) =>
       (delete(timers)..where((t) => t.id.equals(id))).go();
+
+  // ========================================================================
+  // Stopwatch (03-stopwatch)
+  //
+  // The single Stopwatch lives in the generic `ModuleData` JSON lane — no table
+  // of its own, no migration. It is ONE record, addressed by a fixed
+  // (moduleId, entryKey): [clockModuleId] / [stopwatchEntryKey]. The `payload`
+  // map is the persisted truth ({ startedAt, accumulatedMs, isRunning, laps }):
+  // the pane derives its displayed value from this record + `now` via
+  // `clock_math.stopwatchElapsed`, never from a live tick (ADR-0004 — store
+  // timestamps, not ticking state, so the value is correct after backgrounding
+  // and cold start). The repository owns the payload shape; the DAO just
+  // streams/upserts the raw map.
+  // ========================================================================
+
+  /// The clock module's id in the generic [ModuleData] lane.
+  static const clockModuleId = 'clock';
+
+  /// The single stopwatch's entry key within [clockModuleId].
+  static const stopwatchEntryKey = 'stopwatch';
+
+  /// Streams the raw stopwatch payload map, or null until the record is first
+  /// written. Reactive: re-emits on every transition write (start/pause/lap/
+  /// reset). `watchSingleOrNull` (not `watchSingle`) because no record exists
+  /// before the first interaction — a fresh install reads null = idle/zero.
+  Stream<Map<String, dynamic>?> watchStopwatch() {
+    return (select(moduleData)
+          ..where((r) =>
+              r.moduleId.equals(clockModuleId) &
+              r.entryKey.equals(stopwatchEntryKey)))
+        .map((row) => row.payload)
+        .watchSingleOrNull();
+  }
+
+  /// Upserts the single stopwatch record with [payload]. Called only on
+  /// transitions, never per display frame. The (moduleId, entryKey) primary key
+  /// makes this idempotent — there is always exactly one stopwatch row.
+  Future<void> writeStopwatch(Map<String, dynamic> payload) {
+    return into(moduleData).insertOnConflictUpdate(
+      ModuleDataCompanion.insert(
+        moduleId: clockModuleId,
+        entryKey: stopwatchEntryKey,
+        payload: payload,
+      ),
+    );
+  }
 }

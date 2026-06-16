@@ -203,9 +203,153 @@ void main() {
     test('todaysAlarmCount emits 0 (07-alarm-data)', () {
       expect(repo.watchTodaysAlarmCount(), emits(0));
     });
+  });
 
-    test('stopwatchRunning emits false (03-stopwatch)', () {
-      expect(repo.watchStopwatchRunning(), emits(false));
+  group('stopwatch', () {
+    test('idle before any interaction (no record): not running, zero elapsed',
+        () async {
+      final s = await repo.readStopwatch();
+      expect(s.isRunning, isFalse);
+      expect(s.accumulatedMs, 0);
+      expect(s.laps, isEmpty);
+      expect(s.elapsedAt(now), Duration.zero);
+      // watchStopwatchRunning derives from the same record.
+      expect(await repo.watchStopwatchRunning().first, isFalse);
+    });
+
+    test('start persists startedAt + isRunning, preserving accumulated',
+        () async {
+      await repo.startStopwatch(now: now);
+
+      final s = await repo.readStopwatch();
+      expect(s.isRunning, isTrue);
+      expect(s.startedAt, now);
+      expect(s.accumulatedMs, 0);
+      expect(await repo.watchStopwatchRunning().first, isTrue);
+    });
+
+    test('running elapsed = accumulated + (now − startedAt)', () async {
+      await repo.startStopwatch(now: now);
+      final s = await repo.readStopwatch();
+      // 90s after start, still running.
+      final at = now.add(const Duration(seconds: 90));
+      expect(s.elapsedAt(at), const Duration(seconds: 90));
+    });
+
+    test('pause banks the live segment into accumulatedMs and stops counting',
+        () async {
+      await repo.startStopwatch(now: now);
+      final pauseAt = now.add(const Duration(seconds: 30));
+      await repo.pauseStopwatch(now: pauseAt);
+
+      final s = await repo.readStopwatch();
+      expect(s.isRunning, isFalse);
+      expect(s.startedAt, isNull);
+      expect(s.accumulatedMs, const Duration(seconds: 30).inMilliseconds);
+      // Paused: elapsed is independent of `now`.
+      expect(s.elapsedAt(pauseAt.add(const Duration(hours: 1))),
+          const Duration(seconds: 30));
+      expect(await repo.watchStopwatchRunning().first, isFalse);
+    });
+
+    test('resume continues from the accumulated value', () async {
+      await repo.startStopwatch(now: now);
+      await repo.pauseStopwatch(now: now.add(const Duration(seconds: 30)));
+
+      // Resume an hour later; run another 10s.
+      final resumeAt = now.add(const Duration(hours: 1));
+      await repo.startStopwatch(now: resumeAt);
+      final s = await repo.readStopwatch();
+      expect(s.startedAt, resumeAt);
+      expect(s.accumulatedMs, const Duration(seconds: 30).inMilliseconds);
+      // 30s banked + 10s live = 40s.
+      expect(s.elapsedAt(resumeAt.add(const Duration(seconds: 10))),
+          const Duration(seconds: 40));
+    });
+
+    test('start is a no-op while already running (keeps the live segment)',
+        () async {
+      await repo.startStopwatch(now: now);
+      // A second start 5s later must NOT re-stamp startedAt.
+      await repo.startStopwatch(now: now.add(const Duration(seconds: 5)));
+      expect((await repo.readStopwatch()).startedAt, now);
+    });
+
+    test('pause is a no-op while already paused', () async {
+      await repo.startStopwatch(now: now);
+      await repo.pauseStopwatch(now: now.add(const Duration(seconds: 30)));
+      final accumulated = (await repo.readStopwatch()).accumulatedMs;
+
+      await repo.pauseStopwatch(now: now.add(const Duration(minutes: 5)));
+      expect((await repo.readStopwatch()).accumulatedMs, accumulated);
+    });
+
+    test('lap appends the current elapsed, in order, leaving run state intact',
+        () async {
+      await repo.startStopwatch(now: now);
+      await repo.lapStopwatch(now: now.add(const Duration(seconds: 10)));
+      await repo.lapStopwatch(now: now.add(const Duration(seconds: 25)));
+
+      final s = await repo.readStopwatch();
+      expect(s.laps.map((d) => d.inSeconds).toList(), [10, 25]);
+      expect(s.isRunning, isTrue, reason: 'lap does not stop the stopwatch');
+      expect(s.startedAt, now);
+    });
+
+    test('reset zeroes elapsed and clears all laps', () async {
+      await repo.startStopwatch(now: now);
+      await repo.lapStopwatch(now: now.add(const Duration(seconds: 10)));
+      await repo.pauseStopwatch(now: now.add(const Duration(seconds: 30)));
+
+      await repo.resetStopwatch();
+      final s = await repo.readStopwatch();
+      expect(s.accumulatedMs, 0);
+      expect(s.startedAt, isNull);
+      expect(s.isRunning, isFalse);
+      expect(s.laps, isEmpty);
+      expect(s.elapsedAt(now), Duration.zero);
+    });
+
+    test(
+        'cold start: re-reading the persisted record reproduces running elapsed',
+        () async {
+      // Simulate a write, then a fresh repo/DAO over the SAME db (process death
+      // keeps the on-disk record; here the in-memory db stands in for that).
+      await repo.startStopwatch(now: now);
+
+      final freshRepo = ClockRepository(dao, _FakeScheduler());
+      final s = await freshRepo.readStopwatch();
+      // Running stopwatch shows accumulated + (now − startedAt) at any later now.
+      final coldNow = now.add(const Duration(minutes: 2));
+      expect(s.isRunning, isTrue);
+      expect(s.elapsedAt(coldNow), const Duration(minutes: 2));
+    });
+
+    test('cold start: a paused stopwatch shows only accumulatedMs', () async {
+      await repo.startStopwatch(now: now);
+      await repo.pauseStopwatch(now: now.add(const Duration(seconds: 45)));
+
+      final freshRepo = ClockRepository(dao, _FakeScheduler());
+      final s = await freshRepo.readStopwatch();
+      expect(s.isRunning, isFalse);
+      expect(s.elapsedAt(now.add(const Duration(hours: 3))),
+          const Duration(seconds: 45));
+    });
+
+    test('watchStopwatch re-emits on each transition', () async {
+      final emissions = <bool>[];
+      final sub =
+          repo.watchStopwatch().listen((s) => emissions.add(s.isRunning));
+      await pumpEventQueue();
+
+      await repo.startStopwatch(now: now);
+      await pumpEventQueue();
+      await repo.pauseStopwatch(now: now.add(const Duration(seconds: 5)));
+      await pumpEventQueue();
+
+      await sub.cancel();
+      // null record (false) → start (true) → pause (false).
+      expect(emissions, containsAllInOrder([false, true, false]));
     });
   });
 }

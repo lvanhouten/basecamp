@@ -1,17 +1,33 @@
+import 'package:basecamp/core/db/app_db.dart';
 import 'package:basecamp/core/providers.dart';
 import 'package:basecamp/core/widgets/app_drawer.dart';
 import 'package:basecamp/features/clock/clock_screen.dart';
 import 'package:basecamp/features/clock/clock_tab.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // The Stopwatch tab embeds StopwatchPane (03-stopwatch), which watches the
+  // clock repository → dbProvider. Point dbProvider at an in-memory database so
+  // mounting the screen (any tab) never opens the real on-disk Drift file.
+  ProviderContainer makeContainer() {
+    final db = AppDb.forTesting(NativeDatabase.memory());
+    final container = ProviderContainer(
+      overrides: [dbProvider.overrideWithValue(db)],
+    );
+    addTearDown(() async {
+      container.dispose();
+      await db.close();
+    });
+    return container;
+  }
+
   group('ClockScreen', () {
     testWidgets('renders three tabs, the hub drawer, and lands on Alarms',
         (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final container = makeContainer();
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -42,8 +58,7 @@ void main() {
 
     testWidgets('seeds the controller from an entry tab set before mount',
         (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final container = makeContainer();
       // Simulate the Brief card having chosen the Stopwatch tab on tap.
       container.read(selectedClockTabProvider.notifier).select(ClockTab.stopwatch);
 
@@ -61,8 +76,7 @@ void main() {
 
     testWidgets('a manual tab tap persists into the shared tab state',
         (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final container = makeContainer();
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -80,8 +94,7 @@ void main() {
 
     testWidgets('an external entry-tab change moves the live controller',
         (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final container = makeContainer();
 
       await tester.pumpWidget(
         UncontrolledProviderScope(

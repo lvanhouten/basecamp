@@ -3,6 +3,7 @@ import '../../../core/db/app_db.dart';
 import '../clock_math.dart' as clock_math;
 import 'clock_dao.dart';
 import 'notification_scheduler.dart';
+import 'stopwatch_state.dart';
 
 /// The Clock module's own data access. It IMPLEMENTS [ClockApi] (the narrow
 /// cross-module contract) and also exposes richer methods used only by the
@@ -10,9 +11,9 @@ import 'notification_scheduler.dart';
 ///
 /// As of `04-timer-data` it coordinates the [ClockDao], the
 /// [NotificationScheduler] seam, and the pure `clock_math` helpers for the Timer
-/// tool, and [watchRunningTimerCount] is now a REAL Drift query. The other two
-/// counts remain placeholders until their briefs land:
-///   - [watchStopwatchRunning]  → 03-stopwatch
+/// tool, and [watchRunningTimerCount] is now a REAL Drift query. `03-stopwatch`
+/// adds the Stopwatch methods and makes [watchStopwatchRunning] real. The
+/// remaining count is still a placeholder until its brief lands:
 ///   - [watchTodaysAlarmCount]  → 07-alarm-data
 ///
 /// Later briefs widen the constructor with their own deps (03 reuses the same
@@ -39,7 +40,8 @@ class ClockRepository implements ClockApi {
       _dao.watchRunningTimerCount(DateTime.now());
 
   @override
-  Stream<bool> watchStopwatchRunning() => Stream.value(false); // 03-stopwatch
+  Stream<bool> watchStopwatchRunning() =>
+      _dao.watchStopwatch().map((p) => StopwatchState.fromPayload(p).isRunning);
 
   // --- Timer tool (internal to the Clock module) ---
 
@@ -109,5 +111,76 @@ class ClockRepository implements ClockApi {
   Future<void> cancelTimer(int id) async {
     await _dao.deleteTimer(id);
     await _scheduler.cancel(id);
+  }
+
+  // --- Stopwatch tool (internal to the Clock module) ---
+
+  /// The single stopwatch's persisted state, parsed into [StopwatchState].
+  /// Reactive — re-emits on every transition write. Before the first
+  /// interaction the record doesn't exist and this emits [StopwatchState.idle]
+  /// (`accumulatedMs` 0, not running): a fresh install and an explicit reset
+  /// look identical, which is correct. Backs the StopwatchPane's state.
+  Stream<StopwatchState> watchStopwatch() =>
+      _dao.watchStopwatch().map(StopwatchState.fromPayload);
+
+  /// One-shot read of the current persisted state (no record ⇒ [idle]). Used by
+  /// the pause/lap transitions to compute against the live `startedAt`, and by
+  /// the pane's resume hook to re-sync its display ticker.
+  Future<StopwatchState> readStopwatch() async =>
+      StopwatchState.fromPayload(await _dao.watchStopwatch().first);
+
+  /// Start (from idle or paused): stamp `startedAt = now`, set `isRunning`,
+  /// preserving the banked `accumulatedMs` and any laps. No-op if already
+  /// running (re-starting would discard the live segment's elapsed). [now] is
+  /// injected for deterministic tests.
+  Future<void> startStopwatch({DateTime? now}) async {
+    final s = await readStopwatch();
+    if (s.isRunning) return;
+    await _dao.writeStopwatch(
+      StopwatchState(
+        startedAt: now ?? DateTime.now(),
+        accumulatedMs: s.accumulatedMs,
+        isRunning: true,
+        laps: s.laps,
+      ).toPayload(),
+    );
+  }
+
+  /// Pause: bank the current live segment into `accumulatedMs` via clock-math,
+  /// clear `startedAt`, set `isRunning = false`, keep laps. No-op if already
+  /// paused (no live segment to bank).
+  Future<void> pauseStopwatch({DateTime? now}) async {
+    final s = await readStopwatch();
+    if (!s.isRunning || s.startedAt == null) return;
+    final elapsed = s.elapsedAt(now ?? DateTime.now());
+    await _dao.writeStopwatch(
+      StopwatchState(
+        startedAt: null,
+        accumulatedMs: elapsed.inMilliseconds,
+        isRunning: false,
+        laps: s.laps,
+      ).toPayload(),
+    );
+  }
+
+  /// Lap: append the current total elapsed (via clock-math) to `laps`, leaving
+  /// the run state untouched. A lap while paused records the banked total.
+  Future<void> lapStopwatch({DateTime? now}) async {
+    final s = await readStopwatch();
+    final elapsed = s.elapsedAt(now ?? DateTime.now());
+    await _dao.writeStopwatch(
+      StopwatchState(
+        startedAt: s.startedAt,
+        accumulatedMs: s.accumulatedMs,
+        isRunning: s.isRunning,
+        laps: [...s.laps, elapsed],
+      ).toPayload(),
+    );
+  }
+
+  /// Reset to zero: clear `accumulatedMs`, `startedAt`, laps, stop. Persists the
+  /// idle record (rather than deleting it) so the stream emits the zeroed state.
+  Future<void> resetStopwatch() async {
+    await _dao.writeStopwatch(StopwatchState.idle.toPayload());
   }
 }

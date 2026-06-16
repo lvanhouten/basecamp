@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../core/widgets/app_drawer.dart';
 import 'clock_tab.dart';
+import 'stopwatch_pane.dart';
 
 /// Clock — time tools grouped under one module: Alarms, a countdown Timer, and
 /// a Stopwatch, presented as three tabs. Carries the hub navigation drawer (the
@@ -30,6 +31,11 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
   late final TabController _tabs;
   late final AppLifecycleListener _lifecycle;
 
+  /// Lets the resume hook re-sync the Stopwatch pane's display ticker to the
+  /// wall clock (it kept persisted-timestamp truth across background, but its
+  /// in-memory `_now` froze while the process was paused).
+  final _stopwatchKey = GlobalKey<StopwatchPaneState>();
+
   @override
   void initState() {
     super.initState();
@@ -41,10 +47,11 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
       initialIndex: ref.read(selectedClockTabProvider).index,
     )..addListener(_onTabChanged);
 
-    // Resume-time recompute scaffold (ADR-0004). No tool state exists yet, so
-    // this is a deliberate no-op the later panes (03/04/07) hang behavior on —
-    // e.g. recomputing live counts / re-deriving the entry tab when the app
-    // returns from background. Wired now so the hook point is stable.
+    // Resume-time recompute hook (ADR-0004): the Stopwatch pane kept its
+    // persisted-timestamp truth across background, but its in-memory display
+    // clock froze while the process was paused — re-sync it to the wall clock
+    // on return so the readout jumps straight to the correct elapsed. Later
+    // panes (07 alarms) can hang their own resume recompute here too.
     _lifecycle = AppLifecycleListener(onResume: _onResume);
   }
 
@@ -58,8 +65,11 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
     }
   }
 
-  /// No-op scaffold. Later briefs recompute live tool state here on resume.
-  void _onResume() {}
+  /// On resume, re-sync the Stopwatch display ticker to the wall clock. The
+  /// persisted record is unchanged (timestamps, not ticking state); this only
+  /// snaps the displayed value so it doesn't briefly show the stale pre-pause
+  /// elapsed before the next ticker frame.
+  void _onResume() => _stopwatchKey.currentState?.resync();
 
   @override
   void dispose() {
@@ -94,12 +104,12 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
       ),
       body: TabBarView(
         controller: _tabs,
-        children: const [
-          // Placeholder panes — replaced by later briefs (08 alarms, 05 timer,
-          // 03 stopwatch). Each later pane drops in here for its tab.
-          _Placeholder(label: 'No alarms set'),
-          _Placeholder(label: 'Set a countdown'),
-          _Placeholder(label: '00:00.00'),
+        children: [
+          // Placeholder panes — replaced by later briefs (08 alarms, 05 timer).
+          // Each later pane drops in here for its tab.
+          const _Placeholder(label: 'No alarms set'),
+          const _Placeholder(label: 'Set a countdown'),
+          StopwatchPane(key: _stopwatchKey),
         ],
       ),
     );
