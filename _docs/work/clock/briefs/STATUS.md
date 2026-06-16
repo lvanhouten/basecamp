@@ -2,41 +2,45 @@
 
 | Brief | Status | Wave | Merged SHA | Criteria | Note |
 |---|---|---|---|---|---|
-| 01-clock-math      | integrated | 1 | 40ce4a5 | 8/8 | pure module, no hazards |
+| 01-clock-math      | integrated | 1 | 40ce4a5 | 8/8 | pure module |
 | 02-clock-shell     | integrated | 1 | e399524 | 7/7 | shell + ClockApi + repo skeleton + providers |
-| 06-alarm-recurrence | integrated | 1 | 6725369 | 8/8 | pure module, no hazards |
-| 03-stopwatch       | pending | 2 | — | — | ModuleData lane; collides with 04 on repo+providers |
-| 04-timer-data      | pending | 2 | — | — | codegen: Timers table (+pubspec, manifest); collides with 03 |
-| 05-timer-ui        | pending | 3 | — | — | |
-| 07-alarm-data      | pending | 3 | — | — | codegen: Alarms table (+manifest) |
-| 08-alarm-ui        | pending | 4 | — | — | sole brief |
+| 06-alarm-recurrence | integrated | 1 | 6725369 | 8/8 | pure module |
+| 04-timer-data      | integrated | 2 | 3d78121 | 8/8 | Timers table (v3), ClockDao, NotificationScheduler, providers |
+| 03-stopwatch       | pending | 3 | — | — | extends ClockDao (ModuleData) + repo + providers |
+| 05-timer-ui        | pending | 3 | — | — | consumes 04's runningTimersProvider; TimerRow |
+| 07-alarm-data      | pending | 4 | — | — | codegen: Alarms table (v4), extends scheduler full-screen |
+| 08-alarm-ui        | pending | 5 | — | — | depends on 07 |
 
 ## Dependency graph
 
-- 01-clock-math → none
-- 02-clock-shell → none
-- 06-alarm-recurrence → none
-- 03-stopwatch → 01, 02
-- 04-timer-data → 01, 02
-- 05-timer-ui → 04
-- 07-alarm-data → 02, 04, 06
-- 08-alarm-ui → 07
+- 01 → none · 02 → none · 06 → none
+- 03 → 01, 02 · 04 → 01, 02 · 05 → 04 · 07 → 02, 04, 06 · 08 → 07
 
-## Run model
+## Run model (REVISED after wave 2)
 
-- Workers self-verify in their worktree via the full flutter path (`/c/Users/Lukas5856/dev/flutter/bin/flutter.bat`); allowlist committed to `.claude/settings.json` so worktrees inherit it. **Confirmed working in wave 1** (all 3 ran pub get/analyze/test themselves).
-- **Orchestrator owns codegen + generated files**: workers never run `build_runner` and never commit `*.g.dart`. I regenerate centrally after each merge.
-- I re-gate every merge centrally: `flutter pub get` (if pubspec changed) → `build_runner` (if tables/DAOs changed) → `analyze` → `test`.
-- Push straight through all waves; stop only on blocked/partial, semantic conflict, or a deviation invalidating a downstream brief.
+- **Worktree isolation ABANDONED:** `isolation:"worktree"` provisions worktrees off `main` (`11f6803`), NOT the current `clock` HEAD — so any brief depending on prior clock work finds its deps missing and reports blocked (confirmed: 04's first attempt). Wave 1 only survived because those briefs were dependency-free + purely additive (merged as 3-way, not fast-forward).
+- **Remaining briefs run NON-ISOLATED, SEQUENTIAL, foreground** in the main checkout on `clock`; the worker commits its hand-written source directly to `clock`. Order: 03 → 05 → 07 → 08 (respects deps; serializes the shared clock data layer 04→03→07 to avoid conflicts).
+- **Orchestrator owns codegen + `*.g.dart`:** worker self-verifies in place (build_runner + analyze + test) but stages by explicit path, never commits `*.g.dart`. After the worker returns I regenerate centrally, run analyze + test, and fold the generated files into the brief's commit (`git commit --amend`). Tree kept clean between briefs.
+- While a non-isolated worker runs, the orchestrator does NOT touch the working tree (no concurrent git/file ops).
+- Push straight through; stop only on blocked/partial, semantic conflict, or a deviation invalidating a downstream brief.
 
 ## Handoff notes
 
-- **01-clock-math → [03-stopwatch, 04-timer-data]:** module at `lib/features/clock/clock_math.dart`. Pure functions, all `Duration`-returning, named params: `stopwatchElapsed({DateTime? startedAt, int accumulatedMs, DateTime now})` (startedAt null ⇒ paused ⇒ `accumulatedMs`; else accumulated + now−startedAt); `countdownRemaining({DateTime endsAt, DateTime now})` (clamped ≥0); `pausedRemaining({DateTime endsAt, DateTime now})` (alias of countdownRemaining, call at pause to capture remaining; on resume rebuild `endsAt = resumedAt + storedRemaining`). Timestamps are `DateTime`, `accumulatedMs` is `int` ms — convert at the repo boundary if storing epoch ints.
-- **06-alarm-recurrence → [07-alarm-data]:** module at `lib/features/clock/data/alarm_recurrence.dart`. `nextOccurrence(int timeOfDayMinutes, int repeatDaysMask, DateTime from) → DateTime`; `ringsToday(int timeOfDayMinutes, int repeatDaysMask, DateTime date) → bool` (use to filter enabled alarms for `watchTodaysAlarmCount`); `weekdaySchedule(int, int) → List<AlarmWeekdaySlot>` (one slot per set bit, Mon→Sun; `AlarmWeekdaySlot` = const value type `{int dartWeekday (1=Mon..7=Sun), int timeOfDayMinutes}`). **Weekday-bit convention (BINDING for `Alarms.repeatDays`):** 7-bit, bit 0 = Mon … bit 6 = Sun = `1 << (weekday-1)`, `everyDayMask = 0x7F`. Exported helpers: `weekdayBit`, `maskHasWeekday`, `isRecurring`, `isValidTimeOfDay`. All pure — pass an explicit `DateTime`.
-- **02-clock-shell → [03, 04, 07, 08]:** `ClockApi` (`lib/core/contracts/clock_api.dart`) = abstract interface, exactly `Stream<int> watchTodaysAlarmCount()`, `Stream<int> watchRunningTimerCount()`, `Stream<bool> watchStopwatchRunning()` — depend on the interface, not the concrete repo. `ClockRepository` (`lib/features/clock/data/clock_repository.dart`) implements ClockApi, currently `const ClockRepository()` returning `Stream.value(0/0/false)`. **To make a count real:** add your DAO as a ctor param (mirror `ListsRepository(dao,bus)`), swap that one method to `_dao.watchX()`, update `clockRepositoryProvider` to inject `ref.watch(dbProvider).yourDao`, **drop `const`** from class+provider; leave the other two placeholders intact. Providers (all in `lib/core/providers.dart`): `clockRepositoryProvider`, `clockApiProvider`, `todaysAlarmCountProvider`/`runningTimerCountProvider` (StreamProvider<int>), `stopwatchRunningProvider` (StreamProvider<bool>), `selectedClockTabProvider` (NotifierProvider<SelectedClockTab, ClockTab>). `ClockTab` enum (`lib/features/clock/clock_tab.dart`) = `{alarms, timer, stopwatch}`, index order MATCHES TabBar/TabBarView; pure `entryTab({bool stopwatchRunning, int runningTimerCount, int todaysAlarmCount}) → ClockTab`. **Pane slots:** `clock_screen.dart` `TabBarView.children` is `[Alarms, Timer, Stopwatch]` — replace the matching `_Placeholder(...)` with your pane; do NOT add your own DefaultTabController (the State owns the controller, synced to `selectedClockTabProvider`). **Resume hook:** `_ClockScreenState` has an `AppLifecycleListener` with empty `_onResume` — hang resume recompute there. **ModuleData clock-key convention is OPEN** — owned by the data briefs (03/04/07); nothing in the shell constrains it.
+- **01-clock-math → [03]:** `lib/features/clock/clock_math.dart`. `stopwatchElapsed({DateTime? startedAt, int accumulatedMs, DateTime now})` (startedAt null ⇒ paused ⇒ accumulatedMs; else accumulated + now−startedAt); plus `countdownRemaining`/`pausedRemaining` (clamped ≥0). DateTime timestamps, int ms.
+- **06-alarm-recurrence → [07]:** `lib/features/clock/data/alarm_recurrence.dart`. `nextOccurrence(int,int,DateTime)→DateTime`, `ringsToday(int,int,DateTime)→bool`, `weekdaySchedule(int,int)→List<AlarmWeekdaySlot>`. Weekday-bit (BINDING for `Alarms.repeatDays`): bit0=Mon..bit6=Sun = `1<<(weekday-1)`, `everyDayMask=0x7F`.
+- **02-clock-shell → [03,07,08]:** `ClockApi` interface (clock_api.dart); `ClockRepository` (clock_repository.dart); providers in providers.dart (clockRepositoryProvider, clockApiProvider, the 3 count providers, selectedClockTabProvider). `ClockTab {alarms,timer,stopwatch}` + pure `entryTab(...)`. Pane slots: `clock_screen.dart` TabBarView.children `[Alarms, Timer, Stopwatch]` — replace the matching `_Placeholder`; State owns the TabController (no DefaultTabController). Resume hook: `_ClockScreenState._onResume` (empty). ClockScreen is `ConsumerStatefulWidget`.
+- **04-timer-data → [03,05,07]:**
+  - `ClockDao` at `lib/features/clock/data/clock_dao.dart` = `@DriftAccessor(tables:[Timers]) ... with _$ClockDaoMixin { ClockDao(super.db); }`. To add a table (07 Alarms): add to the @DriftAccessor list HERE + @DriftDatabase tables in app_db.dart, then build_runner. **03 stopwatch reuses ModuleData — add methods, no new table.**
+  - Generated row class is **`TimerRow`** (`@DataClassName('TimerRow')`) — Drift would otherwise singularize to `Timer` and collide with `dart:async.Timer`. 05 references `TimerRow` (exported via app_db.dart).
+  - `ClockRepository(ClockDao dao, NotificationScheduler scheduler)` — NO longer const. Timer methods take optional `now`: `createTimer(Duration,{String? label,DateTime? now})→Future<int>`, `pauseTimer(int,{now})`, `resumeTimer(int,{now})`, `cancelTimer(int)`. Streams `watchRunningTimers()`/`watchAllTimers()`→`Stream<List<TimerRow>>`. `bool get notificationsAllowed`. **Scheduling is handled inside these repo methods — 05's UI just calls them.**
+  - Providers (providers.dart): `notificationSchedulerProvider` (default `LocalNotificationScheduler`, override with fake/Noop in tests), `runningTimersProvider` (StreamProvider<List<TimerRow>>, soonest endsAt then createdAt — **05 consumes THIS, no providers.dart edit**), `runningTimerCountProvider` now real. clockRepositoryProvider non-const (injects clockDao + scheduler).
+  - `NotificationScheduler` (notification_scheduler.dart): `ensurePermission()→Future<bool>`, `schedule({int id, DateTime at, String? payload})`, `cancel(int id)`. Timer impl heads-up (fullScreenIntent:false) channel 'clock_timer', exact-while-idle. `NoopNotificationScheduler` = test no-op. **07 ADDS a sibling method (scheduleAlarm, fullScreenIntent:true, own channel + boot reschedule) — keep schedule/cancel as-is.**
+  - **schemaVersion now 3.** 07 adds a NEW `if (from < 4)` branch for Alarms — do NOT modify the existing branches. Migration-test style: seed prior schema in raw sqlite3, stamp user_version, open `AppDb.forTesting(NativeDatabase.opened(raw))`, assert table exists + old data preserved (see migration_v2_to_v3_test.dart).
+  - Timers columns: id PK, label TEXT?, durationMs INT, endsAt DATETIME? (running incl. finished-past), remainingMs INT? (paused only), createdAt DATETIME default now. No status column. **Drift DateTime test gotcha:** Drift round-trips DateTime via Unix epoch in LOCAL zone — use local `DateTime(...)` literals in tests, not `DateTime.utc(...)`.
 
 ## Deviations
 
-- **01-clock-math:** brief named functions only by description; chose `stopwatchElapsed`/`countdownRemaining`/`pausedRemaining` with named `DateTime`/`int` params → `Duration`. Downstream 03/04 depend on these exact signatures (routed via handoff). No downstream brief invalidated.
-- **06-alarm-recurrence:** the "(weekday, time-of-day) pairs" helper is `weekdaySchedule(...) → List<AlarmWeekdaySlot>` (new const value type, not `MapEntry`); added convenience exports (`weekdayBit`/`maskHasWeekday`/`isRecurring`/`everyDayMask`/`isValidTimeOfDay`) so 07 shares one bit-convention definition. 07 should depend on `AlarmWeekdaySlot` by name. No downstream brief invalidated.
-- **02-clock-shell:** `ClockScreen` is a `ConsumerStatefulWidget` (not bare `ConsumerWidget`) — needs State for TabController + AppLifecycleListener; still Riverpod-aware + carries the hub drawer. Brief card shows alarms always as a summary line ("No alarms today" / "N alarm(s) today") with timer/stopwatch segments only when live (so the placeholder state reads as just "No alarms today", no "Active 0"). Did NOT modify `core/app_module.dart` — the Clock enum case already existed. None of these contradict 03/04/07/08's premises.
+- **01:** chose `stopwatchElapsed`/`countdownRemaining`/`pausedRemaining` signatures (routed to dependents). No downstream invalidated.
+- **06:** `weekdaySchedule→List<AlarmWeekdaySlot>` (new const type); added bit-convention helper exports. 07 depends on `AlarmWeekdaySlot` by name. No downstream invalidated.
+- **02:** `ClockScreen` is `ConsumerStatefulWidget` (needs TabController/AppLifecycleListener); Brief card shows alarms always + timer/stopwatch only when live; `core/app_module.dart` Clock case already existed. No downstream invalidated.
+- **04:** `TimerRow` row-class name (collision avoidance — routed to 05). Updated 2 wave-1 test files (widget_test.dart, clock_repository_test.dart) since making `watchRunningTimerCount` real broke their const-placeholder assumption — legitimate contract ripple, all green. Added `NoopNotificationScheduler`. pub get downgraded some transitive analyzer/test packages within constraints (flutter_local_notifications 18) — no source impact, 140 tests green. **No downstream brief invalidated.**
