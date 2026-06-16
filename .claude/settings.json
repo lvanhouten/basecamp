@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/c/Users/Lukas5856/dev/flutter/bin/flutter.bat *)",
+      "Bash(/c/Users/Lukas5856/AppData/Local/Android/Sdk/platform-tools/adb.exe devices *)",
+      "Bash(\"/c/Users/Lukas5856/AppData/Local/Android/Sdk/emulator/emulator.exe\" -list-avds)",
+      "Bash(\"/c/Users/Lukas5856/AppData/Local/Android/Sdk/emulator/emulator.exe\" -avd flutter_pixel)",
+      "Bash(/c/Users/Lukas5856/AppData/Local/Android/Sdk/platform-tools/adb.exe wait-for-device *)",
+      "Bash(JAVA_HOME='C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr' /c/Users/Lukas5856/dev/flutter/bin/flutter.bat run -d emulator-5554)",
+      "Read(//c/Users/Lukas5856/.android/avd/flutter_pixel.avd/**)",
+      "Bash(/c/Users/Lukas5856/AppData/Local/Android/Sdk/platform-tools/adb.exe -s emulator-5554 emu kill)",
+      "Bash(sleep 3)",
+      "Bash(\"/c/Users/Lukas5856/AppData/Local/Android/Sdk/emulator/emulator.exe\" -avd flutter_pixel -no-snapshot-load)",
+      "Bash(\"/c/Users/Lukas5856/AppData/Local/Android/Sdk/platform-tools/adb.exe\" exec-out *)",
+      "Read(//c/Users/Lukas5856/AppData/Local/Temp/**)"
+    ]
+  }
+}
