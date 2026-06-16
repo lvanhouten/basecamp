@@ -1,6 +1,4 @@
 import 'package:basecamp/core/db/app_db.dart';
-import 'package:basecamp/features/lists/data/lists_dao.dart';
-import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';

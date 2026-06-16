@@ -50,6 +50,10 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.0
   build_runner: ^2.15.0
+  # Direct (test-only) use of the sqlite3 Database API in the v1->v2 migration
+  # test; available transitively via drift, declared here to satisfy
+  # depend_on_referenced_packages.
+  sqlite3: ^3.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
