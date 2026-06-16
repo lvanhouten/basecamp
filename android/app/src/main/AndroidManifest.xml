@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Clock Timer (04-timer-data): post heads-up completion notifications
+         (Android 13+ runtime permission, requested contextually) and
+         re-register pending timer completions after a device reboot. Brief
+         07-alarm-data adds USE_EXACT_ALARM / SCHEDULE_EXACT_ALARM and
+         USE_FULL_SCREEN_INTENT for the alarm ring. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
         android:label="Basecamp"
         android:name="${applicationName}"
@@ -30,6 +37,29 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- flutter_local_notifications: re-registers pending scheduled timer
+             completions after a device reboot (RECEIVE_BOOT_COMPLETED above).
+             A one-off zonedSchedule'd timer thus survives a restart for free;
+             07-alarm-data builds recurring-alarm reschedule on top of this. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+        <!-- Delivers the scheduled notification at fire time and routes the
+             action buttons (Dismiss / +1 min). -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false" />
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            android:exported="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

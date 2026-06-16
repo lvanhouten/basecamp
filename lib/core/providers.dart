@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/clock/clock_tab.dart';
 import '../features/clock/data/clock_repository.dart';
+import '../features/clock/data/notification_scheduler.dart';
 import '../features/lists/data/lists_dao.dart';
 import '../features/lists/data/lists_repository.dart';
 import 'app_module.dart';
@@ -70,11 +71,23 @@ final listCountProvider = StreamProvider<int>(
 
 // --- Clock module ---
 
-/// The Clock module's repository (its full internal surface). A shell scaffold
-/// today: it holds no DAO yet and emits placeholder counts. When the tool DAOs
-/// land (briefs 03/04/07), inject them here as `listsRepositoryProvider` does.
+/// The OS notification-scheduling seam (ADR-0003). Overridable in tests/widget
+/// pumps with a fake or [NoopNotificationScheduler] so timer scheduling is
+/// verifiable without the real plugin. Briefs 03/07 reuse this same provider;
+/// 07 extends the interface for the alarm full-screen intent.
+final notificationSchedulerProvider = Provider<NotificationScheduler>((ref) {
+  return LocalNotificationScheduler();
+});
+
+/// The Clock module's repository (its full internal surface). As of
+/// `04-timer-data` it injects the shared [ClockDao] + the
+/// [NotificationScheduler]; `watchRunningTimerCount` is now real. Briefs 03/07
+/// add their deps to the same DAO (and 07 to the scheduler) — keep additive.
 final clockRepositoryProvider = Provider<ClockRepository>((ref) {
-  return const ClockRepository();
+  return ClockRepository(
+    ref.watch(dbProvider).clockDao,
+    ref.watch(notificationSchedulerProvider),
+  );
 });
 
 /// The module-agnostic contract the Brief depends on. Resolves to the same
@@ -92,6 +105,14 @@ final todaysAlarmCountProvider = StreamProvider<int>(
 
 final runningTimerCountProvider = StreamProvider<int>(
   (ref) => ref.watch(clockApiProvider).watchRunningTimerCount(),
+);
+
+/// The Clock-module-internal running-timer list (soonest `endsAt` first, then
+/// creation order). Exposed here so the TimerPane (05-timer-ui) consumes it
+/// WITHOUT editing this file. Goes through the repository (not the narrow
+/// ClockApi) because the row type is Clock-internal.
+final runningTimersProvider = StreamProvider<List<TimerRow>>(
+  (ref) => ref.watch(clockRepositoryProvider).watchRunningTimers(),
 );
 
 final stopwatchRunningProvider = StreamProvider<bool>(

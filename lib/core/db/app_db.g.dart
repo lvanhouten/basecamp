@@ -739,6 +739,421 @@ class ListItemsCompanion extends UpdateCompanion<ListItem> {
   }
 }
 
+class $TimersTable extends Timers with TableInfo<$TimersTable, TimerRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TimersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endsAtMeta = const VerificationMeta('endsAt');
+  @override
+  late final GeneratedColumn<DateTime> endsAt = GeneratedColumn<DateTime>(
+    'ends_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remainingMsMeta = const VerificationMeta(
+    'remainingMs',
+  );
+  @override
+  late final GeneratedColumn<int> remainingMs = GeneratedColumn<int>(
+    'remaining_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    label,
+    durationMs,
+    endsAt,
+    remainingMs,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'timers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TimerRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_durationMsMeta);
+    }
+    if (data.containsKey('ends_at')) {
+      context.handle(
+        _endsAtMeta,
+        endsAt.isAcceptableOrUnknown(data['ends_at']!, _endsAtMeta),
+      );
+    }
+    if (data.containsKey('remaining_ms')) {
+      context.handle(
+        _remainingMsMeta,
+        remainingMs.isAcceptableOrUnknown(
+          data['remaining_ms']!,
+          _remainingMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TimerRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TimerRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      )!,
+      endsAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ends_at'],
+      ),
+      remainingMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}remaining_ms'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TimersTable createAlias(String alias) {
+    return $TimersTable(attachedDatabase, alias);
+  }
+}
+
+class TimerRow extends DataClass implements Insertable<TimerRow> {
+  final int id;
+
+  /// Optional user label ("Tea", "Pasta"). Null = an unlabeled timer.
+  final String? label;
+
+  /// The configured countdown length in milliseconds. Set once at creation.
+  final int durationMs;
+
+  /// Absolute completion time. Set **only while running** (and on a finished
+  /// timer it points to the past); null while paused. The running list orders
+  /// by this ascending (soonest first).
+  final DateTime? endsAt;
+
+  /// Remaining milliseconds captured at the **pause** transition. Set **only
+  /// while paused**; null while running. On resume `endsAt = now + remainingMs`
+  /// and this is cleared.
+  final int? remainingMs;
+  final DateTime createdAt;
+  const TimerRow({
+    required this.id,
+    this.label,
+    required this.durationMs,
+    this.endsAt,
+    this.remainingMs,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
+    map['duration_ms'] = Variable<int>(durationMs);
+    if (!nullToAbsent || endsAt != null) {
+      map['ends_at'] = Variable<DateTime>(endsAt);
+    }
+    if (!nullToAbsent || remainingMs != null) {
+      map['remaining_ms'] = Variable<int>(remainingMs);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  TimersCompanion toCompanion(bool nullToAbsent) {
+    return TimersCompanion(
+      id: Value(id),
+      label: label == null && nullToAbsent
+          ? const Value.absent()
+          : Value(label),
+      durationMs: Value(durationMs),
+      endsAt: endsAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endsAt),
+      remainingMs: remainingMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remainingMs),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory TimerRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TimerRow(
+      id: serializer.fromJson<int>(json['id']),
+      label: serializer.fromJson<String?>(json['label']),
+      durationMs: serializer.fromJson<int>(json['durationMs']),
+      endsAt: serializer.fromJson<DateTime?>(json['endsAt']),
+      remainingMs: serializer.fromJson<int?>(json['remainingMs']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'label': serializer.toJson<String?>(label),
+      'durationMs': serializer.toJson<int>(durationMs),
+      'endsAt': serializer.toJson<DateTime?>(endsAt),
+      'remainingMs': serializer.toJson<int?>(remainingMs),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  TimerRow copyWith({
+    int? id,
+    Value<String?> label = const Value.absent(),
+    int? durationMs,
+    Value<DateTime?> endsAt = const Value.absent(),
+    Value<int?> remainingMs = const Value.absent(),
+    DateTime? createdAt,
+  }) => TimerRow(
+    id: id ?? this.id,
+    label: label.present ? label.value : this.label,
+    durationMs: durationMs ?? this.durationMs,
+    endsAt: endsAt.present ? endsAt.value : this.endsAt,
+    remainingMs: remainingMs.present ? remainingMs.value : this.remainingMs,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  TimerRow copyWithCompanion(TimersCompanion data) {
+    return TimerRow(
+      id: data.id.present ? data.id.value : this.id,
+      label: data.label.present ? data.label.value : this.label,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      endsAt: data.endsAt.present ? data.endsAt.value : this.endsAt,
+      remainingMs: data.remainingMs.present
+          ? data.remainingMs.value
+          : this.remainingMs,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TimerRow(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('endsAt: $endsAt, ')
+          ..write('remainingMs: $remainingMs, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, label, durationMs, endsAt, remainingMs, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TimerRow &&
+          other.id == this.id &&
+          other.label == this.label &&
+          other.durationMs == this.durationMs &&
+          other.endsAt == this.endsAt &&
+          other.remainingMs == this.remainingMs &&
+          other.createdAt == this.createdAt);
+}
+
+class TimersCompanion extends UpdateCompanion<TimerRow> {
+  final Value<int> id;
+  final Value<String?> label;
+  final Value<int> durationMs;
+  final Value<DateTime?> endsAt;
+  final Value<int?> remainingMs;
+  final Value<DateTime> createdAt;
+  const TimersCompanion({
+    this.id = const Value.absent(),
+    this.label = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.endsAt = const Value.absent(),
+    this.remainingMs = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  TimersCompanion.insert({
+    this.id = const Value.absent(),
+    this.label = const Value.absent(),
+    required int durationMs,
+    this.endsAt = const Value.absent(),
+    this.remainingMs = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : durationMs = Value(durationMs);
+  static Insertable<TimerRow> custom({
+    Expression<int>? id,
+    Expression<String>? label,
+    Expression<int>? durationMs,
+    Expression<DateTime>? endsAt,
+    Expression<int>? remainingMs,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (label != null) 'label': label,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (endsAt != null) 'ends_at': endsAt,
+      if (remainingMs != null) 'remaining_ms': remainingMs,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  TimersCompanion copyWith({
+    Value<int>? id,
+    Value<String?>? label,
+    Value<int>? durationMs,
+    Value<DateTime?>? endsAt,
+    Value<int?>? remainingMs,
+    Value<DateTime>? createdAt,
+  }) {
+    return TimersCompanion(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      durationMs: durationMs ?? this.durationMs,
+      endsAt: endsAt ?? this.endsAt,
+      remainingMs: remainingMs ?? this.remainingMs,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (endsAt.present) {
+      map['ends_at'] = Variable<DateTime>(endsAt.value);
+    }
+    if (remainingMs.present) {
+      map['remaining_ms'] = Variable<int>(remainingMs.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TimersCompanion(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('endsAt: $endsAt, ')
+          ..write('remainingMs: $remainingMs, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ModuleDataTable extends ModuleData
     with TableInfo<$ModuleDataTable, ModuleDataData> {
   @override
@@ -1014,8 +1429,10 @@ abstract class _$AppDb extends GeneratedDatabase {
   $AppDbManager get managers => $AppDbManager(this);
   late final $TrackedListsTable trackedLists = $TrackedListsTable(this);
   late final $ListItemsTable listItems = $ListItemsTable(this);
+  late final $TimersTable timers = $TimersTable(this);
   late final $ModuleDataTable moduleData = $ModuleDataTable(this);
   late final ListsDao listsDao = ListsDao(this as AppDb);
+  late final ClockDao clockDao = ClockDao(this as AppDb);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1023,6 +1440,7 @@ abstract class _$AppDb extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     trackedLists,
     listItems,
+    timers,
     moduleData,
   ];
   @override
@@ -1662,6 +2080,214 @@ typedef $$ListItemsTableProcessedTableManager =
       ListItem,
       PrefetchHooks Function({bool listId})
     >;
+typedef $$TimersTableCreateCompanionBuilder =
+    TimersCompanion Function({
+      Value<int> id,
+      Value<String?> label,
+      required int durationMs,
+      Value<DateTime?> endsAt,
+      Value<int?> remainingMs,
+      Value<DateTime> createdAt,
+    });
+typedef $$TimersTableUpdateCompanionBuilder =
+    TimersCompanion Function({
+      Value<int> id,
+      Value<String?> label,
+      Value<int> durationMs,
+      Value<DateTime?> endsAt,
+      Value<int?> remainingMs,
+      Value<DateTime> createdAt,
+    });
+
+class $$TimersTableFilterComposer extends Composer<_$AppDb, $TimersTable> {
+  $$TimersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endsAt => $composableBuilder(
+    column: $table.endsAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get remainingMs => $composableBuilder(
+    column: $table.remainingMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TimersTableOrderingComposer extends Composer<_$AppDb, $TimersTable> {
+  $$TimersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endsAt => $composableBuilder(
+    column: $table.endsAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get remainingMs => $composableBuilder(
+    column: $table.remainingMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TimersTableAnnotationComposer extends Composer<_$AppDb, $TimersTable> {
+  $$TimersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get endsAt =>
+      $composableBuilder(column: $table.endsAt, builder: (column) => column);
+
+  GeneratedColumn<int> get remainingMs => $composableBuilder(
+    column: $table.remainingMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$TimersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDb,
+          $TimersTable,
+          TimerRow,
+          $$TimersTableFilterComposer,
+          $$TimersTableOrderingComposer,
+          $$TimersTableAnnotationComposer,
+          $$TimersTableCreateCompanionBuilder,
+          $$TimersTableUpdateCompanionBuilder,
+          (TimerRow, BaseReferences<_$AppDb, $TimersTable, TimerRow>),
+          TimerRow,
+          PrefetchHooks Function()
+        > {
+  $$TimersTableTableManager(_$AppDb db, $TimersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TimersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TimersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TimersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<int> durationMs = const Value.absent(),
+                Value<DateTime?> endsAt = const Value.absent(),
+                Value<int?> remainingMs = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => TimersCompanion(
+                id: id,
+                label: label,
+                durationMs: durationMs,
+                endsAt: endsAt,
+                remainingMs: remainingMs,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                required int durationMs,
+                Value<DateTime?> endsAt = const Value.absent(),
+                Value<int?> remainingMs = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => TimersCompanion.insert(
+                id: id,
+                label: label,
+                durationMs: durationMs,
+                endsAt: endsAt,
+                remainingMs: remainingMs,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TimersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDb,
+      $TimersTable,
+      TimerRow,
+      $$TimersTableFilterComposer,
+      $$TimersTableOrderingComposer,
+      $$TimersTableAnnotationComposer,
+      $$TimersTableCreateCompanionBuilder,
+      $$TimersTableUpdateCompanionBuilder,
+      (TimerRow, BaseReferences<_$AppDb, $TimersTable, TimerRow>),
+      TimerRow,
+      PrefetchHooks Function()
+    >;
 typedef $$ModuleDataTableCreateCompanionBuilder =
     ModuleDataCompanion Function({
       required String moduleId,
@@ -1837,6 +2463,8 @@ class $AppDbManager {
       $$TrackedListsTableTableManager(_db, _db.trackedLists);
   $$ListItemsTableTableManager get listItems =>
       $$ListItemsTableTableManager(_db, _db.listItems);
+  $$TimersTableTableManager get timers =>
+      $$TimersTableTableManager(_db, _db.timers);
   $$ModuleDataTableTableManager get moduleData =>
       $$ModuleDataTableTableManager(_db, _db.moduleData);
 }

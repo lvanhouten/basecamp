@@ -10,10 +10,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Stubs the reactive read models the Brief depends on, so no real DB is opened.
+/// The Clock counts are stubbed too: as of 04-timer-data `watchRunningTimerCount`
+/// is a real Drift query, so without these overrides the Brief card would open
+/// the real DB + notification scheduler during the test.
 final _dbStubs = [
   listCountProvider.overrideWith((ref) => Stream.value(0)),
   openItemCountProvider.overrideWith((ref) => Stream.value(0)),
   listsProvider.overrideWith((ref) => Stream.value(<TrackedListWithCount>[])),
+  todaysAlarmCountProvider.overrideWith((ref) => Stream.value(0)),
+  runningTimerCountProvider.overrideWith((ref) => Stream.value(0)),
+  stopwatchRunningProvider.overrideWith((ref) => Stream.value(false)),
 ];
 
 void main() {

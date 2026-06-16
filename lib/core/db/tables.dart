@@ -39,6 +39,52 @@ class ListItems extends Table {
   IntColumn get position => integer().withDefault(const Constant(0))();
 }
 
+/// An **ephemeral** countdown Timer (Clock module, schema v3). Multiple run at
+/// once. We persist *timestamps*, not ticking state (see ADR-0004 / the Clock
+/// README): a killed process can't keep counting, so remaining is always
+/// recomputed from `endsAt` via `clock_math.countdownRemaining`.
+///
+/// State is derived purely from the two nullable time fields — never a separate
+/// status column (which could drift out of sync with the timestamps):
+///   - **running**  → `endsAt` set, `remainingMs` null.
+///   - **paused**   → `endsAt` null, `remainingMs` set (captured at the pause
+///                    transition via `clock_math.pausedRemaining`).
+///   - **finished** → `endsAt` set but in the past (`endsAt <= now`). The row
+///                    stays until the user dismisses it (then it's deleted).
+///
+/// `durationMs` is the originally-configured length, retained so the UI can show
+/// "5:00 timer" and for a future reusable-timer library (Clock README → Future
+/// Enhancements). These are first-iteration ephemeral timers, so there is no
+/// idle state / `position` column yet — those land additively if/when reusable
+/// timers ship.
+///
+/// NOTE: the generated row class is named [TimerRow] (via `@DataClassName`), NOT
+/// `Timer` — Drift would otherwise singularize `Timers` to `Timer`, which
+/// collides with `dart:async.Timer` (the in-app countdown ticker the TimerPane
+/// will use). Downstream briefs: the data class is `TimerRow`.
+@DataClassName('TimerRow')
+class Timers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Optional user label ("Tea", "Pasta"). Null = an unlabeled timer.
+  TextColumn get label => text().nullable()();
+
+  /// The configured countdown length in milliseconds. Set once at creation.
+  IntColumn get durationMs => integer()();
+
+  /// Absolute completion time. Set **only while running** (and on a finished
+  /// timer it points to the past); null while paused. The running list orders
+  /// by this ascending (soonest first).
+  DateTimeColumn get endsAt => dateTime().nullable()();
+
+  /// Remaining milliseconds captured at the **pause** transition. Set **only
+  /// while paused**; null while running. On resume `endsAt = now + remainingMs`
+  /// and this is cleared.
+  IntColumn get remainingMs => integer().nullable()();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 /// The generic JSON lane. Any future module can persist here with no migration:
 /// (moduleId, entryKey) identifies a record; `payload` is an opaque document.
 class ModuleData extends Table {
