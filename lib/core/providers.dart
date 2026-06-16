@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/clock/clock_tab.dart';
+import '../features/clock/data/chime_player.dart';
 import '../features/clock/data/clock_repository.dart';
 import '../features/clock/data/notification_scheduler.dart';
 import '../features/clock/data/stopwatch_state.dart';
@@ -98,7 +99,7 @@ final clockApiProvider =
     Provider<ClockApi>((ref) => ref.watch(clockRepositoryProvider));
 
 // Clock's three reactive counts, read through the CONTRACT (cross-module pull).
-// Placeholder-backed in this brief; later briefs make each real.
+// All three are now real: timers (04), stopwatch (03), alarms (07).
 
 final todaysAlarmCountProvider = StreamProvider<int>(
   (ref) => ref.watch(clockApiProvider).watchTodaysAlarmCount(),
@@ -130,6 +131,22 @@ final stopwatchRunningProvider = StreamProvider<bool>(
 final stopwatchStateProvider = StreamProvider<StopwatchState>(
   (ref) => ref.watch(clockRepositoryProvider).watchStopwatch(),
 );
+
+/// Every alarm (enabled or not), soonest time-of-day first then creation order.
+/// Exposed here so the AlarmsPane (08-alarm-ui) consumes it WITHOUT editing this
+/// file. Goes through the repository (not the narrow ClockApi) because the
+/// [AlarmRow] type is Clock-internal.
+final alarmsProvider = StreamProvider<List<AlarmRow>>(
+  (ref) => ref.watch(clockRepositoryProvider).watchAlarms(),
+);
+
+/// The looping-chime capability the alarm ring screen (08-alarm-ui) drives:
+/// `start()` on launch, `stop()` on Snooze/Dismiss (ADR-0003). Overridable in
+/// tests/widget pumps with a [NoopChimePlayer] or a recording fake so the ring
+/// screen is verifiable without playing audio.
+final chimePlayerProvider = Provider<ChimePlayer>((ref) {
+  return DefaultChimePlayer();
+});
 
 /// The Clock module's selected tool tab. The Brief card writes it (via the
 /// `entryTab` precedence) on tap; `ClockScreen` reads it to sync its

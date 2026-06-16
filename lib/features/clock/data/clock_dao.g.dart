@@ -6,6 +6,7 @@ part of 'clock_dao.dart';
 mixin _$ClockDaoMixin on DatabaseAccessor<AppDb> {
   $TimersTable get timers => attachedDatabase.timers;
   $ModuleDataTable get moduleData => attachedDatabase.moduleData;
+  $AlarmsTable get alarms => attachedDatabase.alarms;
   ClockDaoManager get managers => ClockDaoManager(this);
 }
 
@@ -16,4 +17,6 @@ class ClockDaoManager {
       $$TimersTableTableManager(_db.attachedDatabase, _db.timers);
   $$ModuleDataTableTableManager get moduleData =>
       $$ModuleDataTableTableManager(_db.attachedDatabase, _db.moduleData);
+  $$AlarmsTableTableManager get alarms =>
+      $$AlarmsTableTableManager(_db.attachedDatabase, _db.alarms);
 }

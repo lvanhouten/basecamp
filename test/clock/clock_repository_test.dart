@@ -34,6 +34,18 @@ class _FakeScheduler implements NotificationScheduler {
 
   @override
   Future<void> cancel(int id) async => cancelled.add(id);
+
+  // Alarm seam (07-alarm-data) — unused by the timer tests but required to
+  // satisfy the extended NotificationScheduler interface.
+  @override
+  Future<void> scheduleAlarm({
+    required int id,
+    required DateTime at,
+    String? payload,
+  }) async {}
+
+  @override
+  Future<void> rescheduleAlarms(List<ScheduledAlarm> slots) async {}
 }
 
 void main() {
@@ -199,8 +211,12 @@ void main() {
     });
   });
 
-  group('other ClockApi counts remain placeholders for sibling briefs', () {
-    test('todaysAlarmCount emits 0 (07-alarm-data)', () {
+  group('ClockApi alarm count', () {
+    test('todaysAlarmCount emits 0 with no alarms (real, via 07-alarm-data)',
+        () {
+      // Now real: counts enabled alarms due today via 06's ringsToday. With an
+      // empty alarms table the count is 0. The full alarm-count behaviour is
+      // covered in alarm_repository_test.dart.
       expect(repo.watchTodaysAlarmCount(), emits(0));
     });
   });

@@ -15,7 +15,7 @@ part 'clock_dao.g.dart';
 ///
 /// Other modules never touch these tables — they go through the [ClockApi]
 /// facade (`clock_api.dart`) instead.
-@DriftAccessor(tables: [Timers, ModuleData])
+@DriftAccessor(tables: [Timers, ModuleData, Alarms])
 class ClockDao extends DatabaseAccessor<AppDb> with _$ClockDaoMixin {
   ClockDao(super.db);
 
@@ -163,4 +163,79 @@ class ClockDao extends DatabaseAccessor<AppDb> with _$ClockDaoMixin {
       ),
     );
   }
+
+  // ========================================================================
+  // Alarms (07-alarm-data)
+  //
+  // An Alarm is a standing schedule (time-of-day + 7-bit weekday mask), not a
+  // ticking value. The DAO only knows the persisted shape; the *fire instant*
+  // and *due-today* tests are pure math in `alarm_recurrence.dart` (brief 06),
+  // applied by the repository over these streams/rows. one-off = mask 0;
+  // recurring = any weekday subset (see `Alarms` in tables.dart).
+  // ========================================================================
+
+  /// Every alarm regardless of enabled state, soonest [Alarms.timeOfDayMinutes]
+  /// first, then creation order (`createdAt`, `id` final tiebreak). Backs the
+  /// AlarmsPane list (08) and the repository's today-due count (which filters
+  /// to enabled + due via brief 06's `ringsToday`).
+  Stream<List<AlarmRow>> watchAlarms() {
+    return (select(alarms)
+          ..orderBy([
+            (a) => OrderingTerm(expression: a.timeOfDayMinutes),
+            (a) => OrderingTerm(expression: a.createdAt),
+            (a) => OrderingTerm(expression: a.id),
+          ]))
+        .watch();
+  }
+
+  /// One alarm by id (null if deleted). Used by the repository before a
+  /// snooze/dismiss/setEnabled transition to read the current schedule.
+  Future<AlarmRow?> findAlarm(int id) =>
+      (select(alarms)..where((a) => a.id.equals(id))).getSingleOrNull();
+
+  /// Inserts a new alarm. Defaults to enabled. Returns the new id (used as the
+  /// notification id base — see [NotificationScheduler.scheduleAlarm]).
+  Future<int> insertAlarm({
+    required int timeOfDayMinutes,
+    required int repeatDays,
+    String? label,
+    bool enabled = true,
+  }) {
+    return into(alarms).insert(
+      AlarmsCompanion.insert(
+        timeOfDayMinutes: timeOfDayMinutes,
+        repeatDays: Value(repeatDays),
+        enabled: Value(enabled),
+        label: Value(label),
+      ),
+    );
+  }
+
+  /// Updates an existing alarm's schedule + label (not its enabled flag — that
+  /// is [setEnabled], the true on/off). Used by the repository's edit path
+  /// before it recomputes the schedule.
+  Future<void> updateAlarm(
+    int id, {
+    required int timeOfDayMinutes,
+    required int repeatDays,
+    String? label,
+  }) =>
+      (update(alarms)..where((a) => a.id.equals(id))).write(
+        AlarmsCompanion(
+          timeOfDayMinutes: Value(timeOfDayMinutes),
+          repeatDays: Value(repeatDays),
+          label: Value(label),
+        ),
+      );
+
+  /// Flips the enabled flag only. Scheduling/cancelling the OS notification is
+  /// the repository's job (it owns the [NotificationScheduler] seam).
+  Future<void> setAlarmEnabled(int id, bool enabled) =>
+      (update(alarms)..where((a) => a.id.equals(id))).write(
+        AlarmsCompanion(enabled: Value(enabled)),
+      );
+
+  /// Removes an alarm row.
+  Future<void> deleteAlarm(int id) =>
+      (delete(alarms)..where((a) => a.id.equals(id))).go();
 }

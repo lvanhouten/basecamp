@@ -12,7 +12,7 @@ part 'app_db.g.dart';
 /// for each module live in that module's DAO (see [daos]) — so adding a module
 /// is "register its tables + DAO", not "edit a shared query file".
 @DriftDatabase(
-  tables: [TrackedLists, ListItems, Timers, ModuleData],
+  tables: [TrackedLists, ListItems, Timers, ModuleData, Alarms],
   daos: [ListsDao, ClockDao],
 )
 class AppDb extends _$AppDb {
@@ -22,7 +22,7 @@ class AppDb extends _$AppDb {
   AppDb.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,6 +66,11 @@ class AppDb extends _$AppDb {
           // a brand-new table, no existing rows touched.
           if (from < 3) {
             await m.createTable(timers);
+          }
+          // v3 -> v4: Clock Alarms persistence (07-alarm-data). Additive only —
+          // a brand-new table, no existing rows touched.
+          if (from < 4) {
+            await m.createTable(alarms);
           }
         },
         beforeOpen: (details) async {

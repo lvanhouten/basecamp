@@ -1,6 +1,7 @@
 import '../../../core/contracts/clock_api.dart';
 import '../../../core/db/app_db.dart';
 import '../clock_math.dart' as clock_math;
+import 'alarm_recurrence.dart' as recur;
 import 'clock_dao.dart';
 import 'notification_scheduler.dart';
 import 'stopwatch_state.dart';
@@ -12,9 +13,10 @@ import 'stopwatch_state.dart';
 /// As of `04-timer-data` it coordinates the [ClockDao], the
 /// [NotificationScheduler] seam, and the pure `clock_math` helpers for the Timer
 /// tool, and [watchRunningTimerCount] is now a REAL Drift query. `03-stopwatch`
-/// adds the Stopwatch methods and makes [watchStopwatchRunning] real. The
-/// remaining count is still a placeholder until its brief lands:
-///   - [watchTodaysAlarmCount]  → 07-alarm-data
+/// adds the Stopwatch methods and makes [watchStopwatchRunning] real.
+/// `07-alarm-data` adds the Alarm tool (create/update/setEnabled/snooze/dismiss)
+/// over the same DAO + scheduler, and makes [watchTodaysAlarmCount] real via
+/// brief 06's `ringsToday`. All three counts are now real.
 ///
 /// Later briefs widen the constructor with their own deps (03 reuses the same
 /// DAO; 07 reuses the DAO + scheduler) — keep injection additive.
@@ -33,7 +35,23 @@ class ClockRepository implements ClockApi {
   // --- ClockApi (visible to other modules via clockApiProvider) ---
 
   @override
-  Stream<int> watchTodaysAlarmCount() => Stream.value(0); // 07-alarm-data
+  Stream<int> watchTodaysAlarmCount() {
+    // Count of ENABLED alarms due to ring today: recurring with today's bit
+    // set, or a one-off whose time-of-day is still ahead of now (an alarm
+    // earlier today has already rung). Reactive over the alarms table; the
+    // due-today predicate is brief 06's pure `ringsToday`. `now` is read per
+    // emission so the count re-evaluates against the current day/time — it does
+    // NOT tick on its own (no write = no re-emit), which is fine for a Brief
+    // summary that settles on the next alarm mutation.
+    return _dao.watchAlarms().map((alarms) {
+      final now = DateTime.now();
+      return alarms
+          .where((a) =>
+              a.enabled &&
+              recur.ringsToday(a.timeOfDayMinutes, a.repeatDays, now))
+          .length;
+    });
+  }
 
   @override
   Stream<int> watchRunningTimerCount() =>
@@ -182,5 +200,192 @@ class ClockRepository implements ClockApi {
   /// idle record (rather than deleting it) so the stream emits the zeroed state.
   Future<void> resetStopwatch() async {
     await _dao.writeStopwatch(StopwatchState.idle.toPayload());
+  }
+
+  // --- Alarm tool (internal to the Clock module) ---
+  //
+  // An alarm's state that survives cold start is its row (time-of-day + weekday
+  // mask + enabled). The *ring* is transient OS state: the full-screen-intent
+  // notification(s) the scheduler holds (ADR-0003). Every create/update/enable/
+  // disable/snooze/dismiss recomputes those notifications via brief 06's
+  // recurrence math and the `scheduleAlarm`/`cancel` seam — so the coordination
+  // is testable with a fake scheduler.
+
+  /// Every alarm (enabled or not), soonest time-of-day first then creation
+  /// order. Backs the AlarmsPane list (08-alarm-ui).
+  Stream<List<AlarmRow>> watchAlarms() => _dao.watchAlarms();
+
+  /// Derives the stable OS notification id for one scheduled occurrence of the
+  /// alarm with [alarmId]. A recurring alarm registers up to seven distinct
+  /// notifications (one per selected weekday); a one-off registers one. The id
+  /// is `alarmId * 8 + weekdaySlot`, where `weekdaySlot` is the Dart weekday
+  /// (1=Mon..7=Sun) for a recurring occurrence, or `0` for a one-off. Offset by
+  /// [_alarmIdBase] so alarm notification ids never collide with timer ids
+  /// (bare timer row ids). Exposed so `_cancelAlarm` can reconstruct exactly the
+  /// ids it scheduled (cancel all 8 slots regardless of current mask).
+  static int alarmNotificationId(int alarmId, int weekdaySlot) =>
+      _alarmIdBase + alarmId * 8 + weekdaySlot;
+
+  /// Floor for alarm notification ids, keeping them out of the timer id space
+  /// (timer ids are small autoincrement row ids). 1,000,000 leaves room for
+  /// ~125k alarms before overflow concerns — far beyond any real use.
+  static const int _alarmIdBase = 1000000;
+
+  /// The routing payload carried by an alarm notification: `alarm:<id>`. Brief
+  /// 08 reads the firing alarm's id from this when the full-screen intent
+  /// launches the ring screen.
+  static String alarmPayload(int alarmId) => 'alarm:$alarmId';
+
+  /// Computes the OS notifications for an enabled alarm and (re)schedules them:
+  /// a recurring alarm schedules one full-screen notification per selected
+  /// weekday at its next occurrence on that weekday; a one-off schedules a
+  /// single notification at its next occurrence. Uses brief 06's
+  /// `nextOccurrence` (one-off) / `weekdaySchedule` + per-weekday
+  /// `nextOccurrence` (recurring). [from] is injected for deterministic tests.
+  Future<void> _scheduleAlarm(AlarmRow alarm, DateTime from) async {
+    _notificationsAllowed = await _scheduler.ensurePermission();
+    final payload = alarmPayload(alarm.id);
+
+    if (!recur.isRecurring(alarm.repeatDays)) {
+      // One-off: a single notification at the next occurrence.
+      final at = recur.nextOccurrence(alarm.timeOfDayMinutes, 0, from);
+      await _scheduler.scheduleAlarm(
+        id: alarmNotificationId(alarm.id, 0),
+        at: at,
+        payload: payload,
+      );
+      return;
+    }
+
+    // Recurring: one notification per selected weekday at that weekday's next
+    // occurrence. We compute the next occurrence of a SINGLE-weekday mask so
+    // each slot lands on its own day.
+    for (final slot in recur.weekdaySchedule(
+      alarm.timeOfDayMinutes,
+      alarm.repeatDays,
+    )) {
+      final singleDayMask = recur.weekdayBit(slot.dartWeekday);
+      final at = recur.nextOccurrence(slot.timeOfDayMinutes, singleDayMask, from);
+      await _scheduler.scheduleAlarm(
+        id: alarmNotificationId(alarm.id, slot.dartWeekday),
+        at: at,
+        payload: payload,
+      );
+    }
+  }
+
+  /// Cancels every OS notification an alarm may have scheduled (all weekday
+  /// slots + the one-off slot), so it is safe regardless of whether the alarm
+  /// is currently one-off or recurring (e.g. after an edit changed the mask).
+  Future<void> _cancelAlarm(int alarmId) async {
+    // Cancel the one-off slot AND all seven weekday slots unconditionally —
+    // cancel is a no-op for ids that were never scheduled, and this stays
+    // correct across a recurring↔one-off edit without tracking the prior mask.
+    await _scheduler.cancel(alarmNotificationId(alarmId, 0));
+    for (var weekday = 1; weekday <= 7; weekday++) {
+      await _scheduler.cancel(alarmNotificationId(alarmId, weekday));
+    }
+  }
+
+  /// Create a new alarm. When [enabled] (the default) its OS notification(s) are
+  /// scheduled immediately via brief 06's recurrence. Returns the new alarm id.
+  /// [now] is injected for deterministic tests.
+  Future<int> createAlarm({
+    required int timeOfDayMinutes,
+    int repeatDays = 0,
+    String? label,
+    bool enabled = true,
+    DateTime? now,
+  }) async {
+    final id = await _dao.insertAlarm(
+      timeOfDayMinutes: timeOfDayMinutes,
+      repeatDays: repeatDays,
+      label: label,
+      enabled: enabled,
+    );
+    if (enabled) {
+      final alarm = await _dao.findAlarm(id);
+      await _scheduleAlarm(alarm!, now ?? DateTime.now());
+    }
+    return id;
+  }
+
+  /// Edit an alarm's schedule/label. Cancels the old notification(s) and, if the
+  /// alarm is enabled, reschedules from the new schedule. No-op if the alarm was
+  /// deleted. [now] is injected for deterministic tests.
+  Future<void> updateAlarm(
+    int id, {
+    required int timeOfDayMinutes,
+    int repeatDays = 0,
+    String? label,
+    DateTime? now,
+  }) async {
+    await _cancelAlarm(id);
+    await _dao.updateAlarm(
+      id,
+      timeOfDayMinutes: timeOfDayMinutes,
+      repeatDays: repeatDays,
+      label: label,
+    );
+    final alarm = await _dao.findAlarm(id);
+    if (alarm == null) return; // deleted under us.
+    if (alarm.enabled) {
+      await _scheduleAlarm(alarm, now ?? DateTime.now());
+    }
+  }
+
+  /// The true on/off. Enabling schedules the alarm's notification(s); disabling
+  /// cancels them. No-op if the alarm was deleted. [now] injected for tests.
+  Future<void> setAlarmEnabled(int id, bool enabled, {DateTime? now}) async {
+    await _dao.setAlarmEnabled(id, enabled);
+    final alarm = await _dao.findAlarm(id);
+    if (alarm == null) return;
+    if (enabled) {
+      await _scheduleAlarm(alarm, now ?? DateTime.now());
+    } else {
+      await _cancelAlarm(id);
+    }
+  }
+
+  /// Snooze the alarm with [id]: re-fire it [minutes] from now. v1 callers pass
+  /// 9; the interval is a parameter so a later per-alarm / pick-list snooze is a
+  /// caller-only change (the data layer already carries it). Schedules a single
+  /// full-screen notification at `now + minutes` under the alarm's one-off slot
+  /// id (the snooze is a one-shot re-ring, independent of the recurring
+  /// schedule, which stays armed). No-op if the alarm was deleted.
+  Future<void> snooze(int id, int minutes, {DateTime? now}) async {
+    final alarm = await _dao.findAlarm(id);
+    if (alarm == null) return;
+    final at = (now ?? DateTime.now()).add(Duration(minutes: minutes));
+    await _scheduler.scheduleAlarm(
+      id: alarmNotificationId(id, 0),
+      at: at,
+      payload: alarmPayload(id),
+    );
+  }
+
+  /// Dismiss the current ring of the alarm with [id]:
+  ///   - **one-off** → disable it (`enabled = false`) and cancel its
+  ///     notification — it has fired its one and only time.
+  ///   - **recurring** → leave it enabled with its next occurrence still
+  ///     scheduled; only the *current* ring is cleared (and any pending snooze).
+  /// No-op if the alarm was deleted. [now] injected for tests (recurring needs
+  /// it to recompute the next occurrence after clearing the snooze slot).
+  Future<void> dismiss(int id, {DateTime? now}) async {
+    final alarm = await _dao.findAlarm(id);
+    if (alarm == null) return;
+
+    if (!recur.isRecurring(alarm.repeatDays)) {
+      // One-off: this was its single firing. Disable + cancel.
+      await _dao.setAlarmEnabled(id, false);
+      await _cancelAlarm(id);
+      return;
+    }
+
+    // Recurring: cancel the one-off snooze slot (if a snooze was pending) but
+    // keep the per-weekday schedule armed. Re-derive the weekday slots from the
+    // current schedule so the next occurrences stay registered.
+    await _scheduler.cancel(alarmNotificationId(id, 0));
+    await _scheduleAlarm(alarm, now ?? DateTime.now());
   }
 }

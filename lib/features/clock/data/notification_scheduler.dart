@@ -43,6 +43,68 @@ abstract interface class NotificationScheduler {
 
   /// Cancels a previously-scheduled notification by [id] (no-op if none).
   Future<void> cancel(int id);
+
+  /// Schedules a **full-screen-intent ALARM** with [id] at the absolute
+  /// wall-clock time [at], carrying [payload] (the firing alarm's id, so brief
+  /// 08's launch routing can read which alarm rang — see the `alarm:<id>`
+  /// payload convention used by [ClockRepository]). Unlike [schedule] (a
+  /// heads-up timer notification), this builds its details with
+  /// `fullScreenIntent: true` on a dedicated high-importance channel so it takes
+  /// over the lock screen (ADR-0003). Recurring alarms register one of these per
+  /// selected weekday (distinct [id]s); a one-off registers one. Scheduled
+  /// exact-while-idle so it fires while the app is dead.
+  ///
+  /// IMPORTANT: alarm notification ids are NOT the bare alarm row id (which a
+  /// timer might also use) — the repository derives a stable per-weekday id
+  /// (`alarmNotificationId`) so a recurring alarm's seven slots don't collide
+  /// and so [cancel] can tear them down. [payload] still carries the bare row
+  /// id for 08's routing.
+  Future<void> scheduleAlarm({
+    required int id,
+    required DateTime at,
+    String? payload,
+  });
+
+  /// Re-registers all enabled alarms' scheduled notifications. The Android boot
+  /// receiver (`ScheduledNotificationBootReceiver`, RECEIVE_BOOT_COMPLETED in
+  /// the manifest) re-registers pending `zonedSchedule`d notifications across a
+  /// reboot for free — so a one-off survives. Recurring alarms whose *next*
+  /// fire must be recomputed are re-registered by the repository calling its own
+  /// reschedule-all (`rescheduleEnabledAlarmsOnBoot`) on app launch / boot,
+  /// which delegates here per-slot via [scheduleAlarm]. [slots] is the flat list
+  /// of (notification id, fire instant, payload) the repository computed from
+  /// the enabled alarms via brief 06's `nextOccurrence` / `weekdaySchedule`.
+  Future<void> rescheduleAlarms(List<ScheduledAlarm> slots);
+}
+
+/// One concrete alarm notification the scheduler should (re)register: a stable
+/// notification [id], its absolute fire instant [at], and the routing [payload]
+/// (the firing alarm row's id). The repository builds these from the enabled
+/// alarms + brief 06's recurrence math; [NotificationScheduler.rescheduleAlarms]
+/// registers one full-screen-intent notification per entry.
+class ScheduledAlarm {
+  const ScheduledAlarm({
+    required this.id,
+    required this.at,
+    this.payload,
+  });
+
+  final int id;
+  final DateTime at;
+  final String? payload;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ScheduledAlarm &&
+      other.id == id &&
+      other.at == at &&
+      other.payload == payload;
+
+  @override
+  int get hashCode => Object.hash(id, at, payload);
+
+  @override
+  String toString() => 'ScheduledAlarm(id: $id, at: $at, payload: $payload)';
 }
 
 /// Real implementation over `flutter_local_notifications` + `timezone`.
@@ -66,6 +128,18 @@ class LocalNotificationScheduler implements NotificationScheduler {
     importance: Importance.high,
   );
 
+  /// Dedicated MAX-importance channel for Alarm rings — distinct from the timer
+  /// channel so the alarm can carry a full-screen intent (lock-screen takeover)
+  /// and its own behaviour, per ADR-0003. The looping chime is played by the
+  /// launched ring screen (08) via [ChimePlayer], not by this channel — a
+  /// one-shot notification sound isn't a real alarm.
+  static const _alarmChannel = AndroidNotificationChannel(
+    'clock_alarm',
+    'Alarms',
+    description: 'Full-screen alarm rings',
+    importance: Importance.max,
+  );
+
   Future<void> _ensureInit() async {
     if (_initialized) return;
     tz.initializeTimeZones();
@@ -76,10 +150,10 @@ class LocalNotificationScheduler implements NotificationScheduler {
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
     await _plugin.initialize(initSettings);
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_timerChannel);
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await android?.createNotificationChannel(_timerChannel);
+    await android?.createNotificationChannel(_alarmChannel);
     _initialized = true;
   }
 
@@ -133,6 +207,53 @@ class LocalNotificationScheduler implements NotificationScheduler {
     await _ensureInit();
     await _plugin.cancel(id);
   }
+
+  @override
+  Future<void> scheduleAlarm({
+    required int id,
+    required DateTime at,
+    String? payload,
+  }) async {
+    await _ensureInit();
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _alarmChannel.id,
+        _alarmChannel.name,
+        channelDescription: _alarmChannel.description,
+        importance: Importance.max,
+        priority: Priority.max,
+        category: AndroidNotificationCategory.alarm,
+        // The alarm difference vs. the timer: take over the lock screen
+        // (ADR-0003). The launched ring screen (08) plays the looping chime.
+        fullScreenIntent: true,
+        // The ring screen owns dismiss/snooze; the notification offers them too
+        // so a user who only pulls the shade can act.
+        actions: const <AndroidNotificationAction>[
+          AndroidNotificationAction('dismiss', 'Dismiss'),
+          AndroidNotificationAction('snooze', 'Snooze'),
+        ],
+      ),
+    );
+    await _plugin.zonedSchedule(
+      id,
+      'Alarm',
+      'Your alarm is ringing.',
+      tz.TZDateTime.from(at, tz.local),
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: payload,
+    );
+  }
+
+  @override
+  Future<void> rescheduleAlarms(List<ScheduledAlarm> slots) async {
+    await _ensureInit();
+    for (final slot in slots) {
+      await scheduleAlarm(id: slot.id, at: slot.at, payload: slot.payload);
+    }
+  }
 }
 
 /// A scheduler that records nothing and does nothing — used by the repository
@@ -154,4 +275,14 @@ class NoopNotificationScheduler implements NotificationScheduler {
 
   @override
   Future<void> cancel(int id) async {}
+
+  @override
+  Future<void> scheduleAlarm({
+    required int id,
+    required DateTime at,
+    String? payload,
+  }) async {}
+
+  @override
+  Future<void> rescheduleAlarms(List<ScheduledAlarm> slots) async {}
 }

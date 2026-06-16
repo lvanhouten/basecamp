@@ -85,6 +85,50 @@ class Timers extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
+/// A persisted **Alarm** (Clock module, schema v4). Unlike a Timer (an
+/// ephemeral countdown), an Alarm is a standing wall-clock schedule: it fires
+/// at a time-of-day, optionally on a recurring weekday set, until the user
+/// disables it. We persist only the *schedule* (a time-of-day + weekday mask),
+/// not any ticking/ringing state — the OS holds the scheduled notification
+/// (ADR-0003), and the exact fire instant is derived from these fields via the
+/// pure `alarm_recurrence` math (brief 06). State that survives cold start is
+/// the row; the ring itself is transient OS state.
+///
+///   - **one-off**   → `repeatDays == 0`: fires once, at the next occurrence of
+///                     `timeOfDayMinutes`. `dismiss` flips `enabled = false`.
+///   - **recurring** → `repeatDays != 0`: fires on every selected weekday at
+///                     `timeOfDayMinutes`, forever. `dismiss` leaves it enabled.
+///
+/// `repeatDays` uses the FIXED 7-bit weekday convention from
+/// `alarm_recurrence.dart` (bit 0 = Monday … bit 6 = Sunday, `1 << (weekday-1)`).
+/// Use `weekdayBit` / `maskHasWeekday` rather than re-deriving the shift.
+///
+/// The generated row class is [AlarmRow] (via `@DataClassName`), mirroring
+/// [TimerRow] — `AlarmRow`, not `Alarm`, so downstream code reads consistently
+/// and there's no confusion with a domain "Alarm" concept.
+@DataClassName('AlarmRow')
+class Alarms extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Time-of-day in minutes since local midnight, `[0, 1440)`. The alarm fires
+  /// at this wall-clock time on each due day.
+  IntColumn get timeOfDayMinutes => integer()();
+
+  /// The true on/off. A disabled alarm has no scheduled OS notification; it
+  /// persists so the user can re-enable it (which reschedules). The Brief's
+  /// today-due count only includes enabled alarms.
+  BoolColumn get enabled => boolean().withDefault(const Constant(true))();
+
+  /// 7-bit weekday mask (bit 0 = Monday … bit 6 = Sunday). `0` = one-off; any
+  /// non-zero subset = recurring. See `alarm_recurrence.dart`.
+  IntColumn get repeatDays => integer().withDefault(const Constant(0))();
+
+  /// Optional user label ("Wake up", "Meds"). Null = unlabeled.
+  TextColumn get label => text().nullable()();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 /// The generic JSON lane. Any future module can persist here with no migration:
 /// (moduleId, entryKey) identifies a record; `payload` is an opaque document.
 class ModuleData extends Table {

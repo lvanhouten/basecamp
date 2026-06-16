@@ -1424,6 +1424,420 @@ class ModuleDataCompanion extends UpdateCompanion<ModuleDataData> {
   }
 }
 
+class $AlarmsTable extends Alarms with TableInfo<$AlarmsTable, AlarmRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AlarmsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _timeOfDayMinutesMeta = const VerificationMeta(
+    'timeOfDayMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> timeOfDayMinutes = GeneratedColumn<int>(
+    'time_of_day_minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _repeatDaysMeta = const VerificationMeta(
+    'repeatDays',
+  );
+  @override
+  late final GeneratedColumn<int> repeatDays = GeneratedColumn<int>(
+    'repeat_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    timeOfDayMinutes,
+    enabled,
+    repeatDays,
+    label,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'alarms';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AlarmRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('time_of_day_minutes')) {
+      context.handle(
+        _timeOfDayMinutesMeta,
+        timeOfDayMinutes.isAcceptableOrUnknown(
+          data['time_of_day_minutes']!,
+          _timeOfDayMinutesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_timeOfDayMinutesMeta);
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    }
+    if (data.containsKey('repeat_days')) {
+      context.handle(
+        _repeatDaysMeta,
+        repeatDays.isAcceptableOrUnknown(data['repeat_days']!, _repeatDaysMeta),
+      );
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AlarmRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AlarmRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      timeOfDayMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}time_of_day_minutes'],
+      )!,
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+      repeatDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}repeat_days'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AlarmsTable createAlias(String alias) {
+    return $AlarmsTable(attachedDatabase, alias);
+  }
+}
+
+class AlarmRow extends DataClass implements Insertable<AlarmRow> {
+  final int id;
+
+  /// Time-of-day in minutes since local midnight, `[0, 1440)`. The alarm fires
+  /// at this wall-clock time on each due day.
+  final int timeOfDayMinutes;
+
+  /// The true on/off. A disabled alarm has no scheduled OS notification; it
+  /// persists so the user can re-enable it (which reschedules). The Brief's
+  /// today-due count only includes enabled alarms.
+  final bool enabled;
+
+  /// 7-bit weekday mask (bit 0 = Monday … bit 6 = Sunday). `0` = one-off; any
+  /// non-zero subset = recurring. See `alarm_recurrence.dart`.
+  final int repeatDays;
+
+  /// Optional user label ("Wake up", "Meds"). Null = unlabeled.
+  final String? label;
+  final DateTime createdAt;
+  const AlarmRow({
+    required this.id,
+    required this.timeOfDayMinutes,
+    required this.enabled,
+    required this.repeatDays,
+    this.label,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['time_of_day_minutes'] = Variable<int>(timeOfDayMinutes);
+    map['enabled'] = Variable<bool>(enabled);
+    map['repeat_days'] = Variable<int>(repeatDays);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  AlarmsCompanion toCompanion(bool nullToAbsent) {
+    return AlarmsCompanion(
+      id: Value(id),
+      timeOfDayMinutes: Value(timeOfDayMinutes),
+      enabled: Value(enabled),
+      repeatDays: Value(repeatDays),
+      label: label == null && nullToAbsent
+          ? const Value.absent()
+          : Value(label),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory AlarmRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AlarmRow(
+      id: serializer.fromJson<int>(json['id']),
+      timeOfDayMinutes: serializer.fromJson<int>(json['timeOfDayMinutes']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+      repeatDays: serializer.fromJson<int>(json['repeatDays']),
+      label: serializer.fromJson<String?>(json['label']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'timeOfDayMinutes': serializer.toJson<int>(timeOfDayMinutes),
+      'enabled': serializer.toJson<bool>(enabled),
+      'repeatDays': serializer.toJson<int>(repeatDays),
+      'label': serializer.toJson<String?>(label),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  AlarmRow copyWith({
+    int? id,
+    int? timeOfDayMinutes,
+    bool? enabled,
+    int? repeatDays,
+    Value<String?> label = const Value.absent(),
+    DateTime? createdAt,
+  }) => AlarmRow(
+    id: id ?? this.id,
+    timeOfDayMinutes: timeOfDayMinutes ?? this.timeOfDayMinutes,
+    enabled: enabled ?? this.enabled,
+    repeatDays: repeatDays ?? this.repeatDays,
+    label: label.present ? label.value : this.label,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  AlarmRow copyWithCompanion(AlarmsCompanion data) {
+    return AlarmRow(
+      id: data.id.present ? data.id.value : this.id,
+      timeOfDayMinutes: data.timeOfDayMinutes.present
+          ? data.timeOfDayMinutes.value
+          : this.timeOfDayMinutes,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      repeatDays: data.repeatDays.present
+          ? data.repeatDays.value
+          : this.repeatDays,
+      label: data.label.present ? data.label.value : this.label,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlarmRow(')
+          ..write('id: $id, ')
+          ..write('timeOfDayMinutes: $timeOfDayMinutes, ')
+          ..write('enabled: $enabled, ')
+          ..write('repeatDays: $repeatDays, ')
+          ..write('label: $label, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, timeOfDayMinutes, enabled, repeatDays, label, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AlarmRow &&
+          other.id == this.id &&
+          other.timeOfDayMinutes == this.timeOfDayMinutes &&
+          other.enabled == this.enabled &&
+          other.repeatDays == this.repeatDays &&
+          other.label == this.label &&
+          other.createdAt == this.createdAt);
+}
+
+class AlarmsCompanion extends UpdateCompanion<AlarmRow> {
+  final Value<int> id;
+  final Value<int> timeOfDayMinutes;
+  final Value<bool> enabled;
+  final Value<int> repeatDays;
+  final Value<String?> label;
+  final Value<DateTime> createdAt;
+  const AlarmsCompanion({
+    this.id = const Value.absent(),
+    this.timeOfDayMinutes = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.repeatDays = const Value.absent(),
+    this.label = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  AlarmsCompanion.insert({
+    this.id = const Value.absent(),
+    required int timeOfDayMinutes,
+    this.enabled = const Value.absent(),
+    this.repeatDays = const Value.absent(),
+    this.label = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : timeOfDayMinutes = Value(timeOfDayMinutes);
+  static Insertable<AlarmRow> custom({
+    Expression<int>? id,
+    Expression<int>? timeOfDayMinutes,
+    Expression<bool>? enabled,
+    Expression<int>? repeatDays,
+    Expression<String>? label,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (timeOfDayMinutes != null) 'time_of_day_minutes': timeOfDayMinutes,
+      if (enabled != null) 'enabled': enabled,
+      if (repeatDays != null) 'repeat_days': repeatDays,
+      if (label != null) 'label': label,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  AlarmsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? timeOfDayMinutes,
+    Value<bool>? enabled,
+    Value<int>? repeatDays,
+    Value<String?>? label,
+    Value<DateTime>? createdAt,
+  }) {
+    return AlarmsCompanion(
+      id: id ?? this.id,
+      timeOfDayMinutes: timeOfDayMinutes ?? this.timeOfDayMinutes,
+      enabled: enabled ?? this.enabled,
+      repeatDays: repeatDays ?? this.repeatDays,
+      label: label ?? this.label,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (timeOfDayMinutes.present) {
+      map['time_of_day_minutes'] = Variable<int>(timeOfDayMinutes.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (repeatDays.present) {
+      map['repeat_days'] = Variable<int>(repeatDays.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlarmsCompanion(')
+          ..write('id: $id, ')
+          ..write('timeOfDayMinutes: $timeOfDayMinutes, ')
+          ..write('enabled: $enabled, ')
+          ..write('repeatDays: $repeatDays, ')
+          ..write('label: $label, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDb extends GeneratedDatabase {
   _$AppDb(QueryExecutor e) : super(e);
   $AppDbManager get managers => $AppDbManager(this);
@@ -1431,6 +1845,7 @@ abstract class _$AppDb extends GeneratedDatabase {
   late final $ListItemsTable listItems = $ListItemsTable(this);
   late final $TimersTable timers = $TimersTable(this);
   late final $ModuleDataTable moduleData = $ModuleDataTable(this);
+  late final $AlarmsTable alarms = $AlarmsTable(this);
   late final ListsDao listsDao = ListsDao(this as AppDb);
   late final ClockDao clockDao = ClockDao(this as AppDb);
   @override
@@ -1442,6 +1857,7 @@ abstract class _$AppDb extends GeneratedDatabase {
     listItems,
     timers,
     moduleData,
+    alarms,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2455,6 +2871,214 @@ typedef $$ModuleDataTableProcessedTableManager =
       ModuleDataData,
       PrefetchHooks Function()
     >;
+typedef $$AlarmsTableCreateCompanionBuilder =
+    AlarmsCompanion Function({
+      Value<int> id,
+      required int timeOfDayMinutes,
+      Value<bool> enabled,
+      Value<int> repeatDays,
+      Value<String?> label,
+      Value<DateTime> createdAt,
+    });
+typedef $$AlarmsTableUpdateCompanionBuilder =
+    AlarmsCompanion Function({
+      Value<int> id,
+      Value<int> timeOfDayMinutes,
+      Value<bool> enabled,
+      Value<int> repeatDays,
+      Value<String?> label,
+      Value<DateTime> createdAt,
+    });
+
+class $$AlarmsTableFilterComposer extends Composer<_$AppDb, $AlarmsTable> {
+  $$AlarmsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timeOfDayMinutes => $composableBuilder(
+    column: $table.timeOfDayMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get repeatDays => $composableBuilder(
+    column: $table.repeatDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AlarmsTableOrderingComposer extends Composer<_$AppDb, $AlarmsTable> {
+  $$AlarmsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get timeOfDayMinutes => $composableBuilder(
+    column: $table.timeOfDayMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get repeatDays => $composableBuilder(
+    column: $table.repeatDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AlarmsTableAnnotationComposer extends Composer<_$AppDb, $AlarmsTable> {
+  $$AlarmsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get timeOfDayMinutes => $composableBuilder(
+    column: $table.timeOfDayMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  GeneratedColumn<int> get repeatDays => $composableBuilder(
+    column: $table.repeatDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$AlarmsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDb,
+          $AlarmsTable,
+          AlarmRow,
+          $$AlarmsTableFilterComposer,
+          $$AlarmsTableOrderingComposer,
+          $$AlarmsTableAnnotationComposer,
+          $$AlarmsTableCreateCompanionBuilder,
+          $$AlarmsTableUpdateCompanionBuilder,
+          (AlarmRow, BaseReferences<_$AppDb, $AlarmsTable, AlarmRow>),
+          AlarmRow,
+          PrefetchHooks Function()
+        > {
+  $$AlarmsTableTableManager(_$AppDb db, $AlarmsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AlarmsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AlarmsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AlarmsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> timeOfDayMinutes = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+                Value<int> repeatDays = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AlarmsCompanion(
+                id: id,
+                timeOfDayMinutes: timeOfDayMinutes,
+                enabled: enabled,
+                repeatDays: repeatDays,
+                label: label,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int timeOfDayMinutes,
+                Value<bool> enabled = const Value.absent(),
+                Value<int> repeatDays = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AlarmsCompanion.insert(
+                id: id,
+                timeOfDayMinutes: timeOfDayMinutes,
+                enabled: enabled,
+                repeatDays: repeatDays,
+                label: label,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AlarmsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDb,
+      $AlarmsTable,
+      AlarmRow,
+      $$AlarmsTableFilterComposer,
+      $$AlarmsTableOrderingComposer,
+      $$AlarmsTableAnnotationComposer,
+      $$AlarmsTableCreateCompanionBuilder,
+      $$AlarmsTableUpdateCompanionBuilder,
+      (AlarmRow, BaseReferences<_$AppDb, $AlarmsTable, AlarmRow>),
+      AlarmRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDbManager {
   final _$AppDb _db;
@@ -2467,4 +3091,6 @@ class $AppDbManager {
       $$TimersTableTableManager(_db, _db.timers);
   $$ModuleDataTableTableManager get moduleData =>
       $$ModuleDataTableTableManager(_db, _db.moduleData);
+  $$AlarmsTableTableManager get alarms =>
+      $$AlarmsTableTableManager(_db, _db.alarms);
 }

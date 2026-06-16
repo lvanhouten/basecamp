@@ -6,6 +6,16 @@
          USE_FULL_SCREEN_INTENT for the alarm ring. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Clock Alarms (07-alarm-data): exact-alarm scheduling for the full-screen
+         ring + lock-screen takeover (ADR-0003). USE_EXACT_ALARM is the
+         no-Play-review path for a personal app; SCHEDULE_EXACT_ALARM covers
+         API <= 32 (granted-by-default there, USE_EXACT_ALARM on 33+).
+         USE_FULL_SCREEN_INTENT lets the alarm notification launch the ring
+         screen over the lock screen. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <application
         android:label="Basecamp"
         android:name="${applicationName}"
