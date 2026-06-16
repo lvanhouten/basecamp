@@ -4,8 +4,8 @@
 |---|---|---|---|---|---|
 | 01-data-layer    | integrated | 1 | 5e5fdb6 | 12/12 | partial→verified centrally; build_runner output == hand-roll |
 | 02-prompt-rename | integrated | 1 | 7262c78 | 5/5 | partial→verified; tests run centrally |
-| 03-lists-screen  | pending    | 2 | — | — | depends on 01, 02 |
-| 04-detail-screen | pending    | 2 | — | — | depends on 01, 02 |
+| 03-lists-screen  | running    | 2 | — | — | depends on 01, 02 |
+| 04-detail-screen | running    | 2 | — | — | depends on 01, 02 |
 
 ## Handoff notes
 - **02-prompt-rename → [03-lists-screen, 04-detail-screen]:** `promptForText(context, {required String title, required String hint, String? initialValue, String actionLabel = 'Add'})`. Top-level function in `lib/features/lists/lists_screen.dart` (location unchanged). Rename callers pass `initialValue: <current text>` and `actionLabel: 'Save'`. Return contract unchanged: trimmed text on confirm, null on cancel; empty-after-trim returns `''` (not null) — callers must still guard `isNotEmpty`. (contract-change)
