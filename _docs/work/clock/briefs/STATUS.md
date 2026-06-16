@@ -9,7 +9,7 @@
 | 03-stopwatch       | integrated | 3 | 83e1f06 | 9/9 | ModuleData (clock/stopwatch), StopwatchPane, real watchStopwatchRunning |
 | 05-timer-ui        | integrated | 3 | b598e73 | 7/7 | TimerPane in children[1]; _onResume resyncs both panes |
 | 07-alarm-data      | integrated | 4 | b9188a2 | 9/9 | Alarms v4, scheduleAlarm full-screen, snooze/dismiss/enable, real chime.wav |
-| 08-alarm-ui        | pending | 5 | — | — | depends on 07 |
+| 08-alarm-ui        | integrated | 5 | 0975d9d | 7/7 | AlarmsPane+editor, ring screen, launch-from-notification routing |
 
 ## Dependency graph
 
@@ -51,3 +51,14 @@
 - **03:** edited sibling `test/clock/clock_screen_test.dart` (02's) to add a `dbProvider` in-memory override — replacing the Stopwatch placeholder with a DB-backed pane made ClockScreen open the real Drift file under flutter_test; test-only fix required by the in-scope placeholder swap (routed to 05/08). Running count-up verified at the repo/clock-math layer rather than via live ticker frames (the pane Ticker reads the real wall clock). No downstream invalidated.
 - **05:** added a resume hook (GlobalKey + _onResume append) for parity with the stopwatch though a per-frame ticker may not need it — append-only, kept 03's line. Surfaced the in-app silent-timers warning from `repo.notificationsAllowed` (read-only flag from 04); no scheduling/permission logic in the UI. No downstream invalidated.
 - **07:** `AlarmRow` row-class name (`@DataClassName`, mirrors TimerRow, avoids bare `Alarm` collision). Added a `ScheduledAlarm` value type for the `rescheduleAlarms(List<ScheduledAlarm>)` reboot path (brief described the capability, not the param shape). Added `chimePlayerProvider` (brief only required `alarmsProvider`) so 08 needn't edit providers.dart. **Chime: worker committed a placeholder text `chime.wav`; orchestrator replaced it with a real synthesized 16-bit/44.1kHz mono WAV binary at the central gate** (folded into b9188a2). No downstream invalidated.
+- **08:** added `ClockRepository.deleteAlarm(int id)` (cancels scheduled notifications then deletes — 07 exposed only a DAO delete, and deleting via the DAO from the UI would orphan scheduled full-screen notifications; mirrors `cancelTimer`). Launch routing factored into `AlarmLaunchHost` + an `AlarmLaunchRouter` seam + `alarmLaunchRouterProvider` (defined in the router file, NOT core/providers.dart); `app.dart` rewritten to wrap `HomeShell` in `AlarmLaunchHost`. Unique FAB `heroTag` ('add-alarm-fab') to avoid an IndexedStack duplicate-Hero assertion. Updated clock_screen_test + widget_test for the new root deps. Its report's claim that chime.wav is "still a placeholder" is STALE — the real binary (b9188a2) is intact at HEAD (verified).
+
+## Run complete
+
+All 8 briefs integrated on `clock`, working tree clean, **`flutter analyze` clean + 223/223 tests green** at the final gate (HEAD `0975d9d` for code; ledger commit follows).
+
+**Manual emulator verification still owed** (out of automated scope per the briefs — real OS behavior can't be unit-tested):
+- Timer completion fires a heads-up notification while the app is backgrounded/dead; survives reboot (04).
+- Alarm fires full-screen over the lock screen / from a dead process; survives reboot; the chime loops until Snooze/Dismiss (07/08).
+- `POST_NOTIFICATIONS` contextual prompt on first timer create; denial path shows the in-app warning.
+- Confirm the synthesized `chime.wav` sounds acceptable; swap for a nicer asset if desired.
