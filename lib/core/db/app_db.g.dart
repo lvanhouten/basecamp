@@ -47,8 +47,33 @@ class $TrackedListsTable extends TrackedLists
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _pinnedMeta = const VerificationMeta('pinned');
   @override
-  List<GeneratedColumn> get $columns => [id, name, createdAt];
+  late final GeneratedColumn<bool> pinned = GeneratedColumn<bool>(
+    'pinned',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("pinned" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, createdAt, pinned, position];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -78,6 +103,18 @@ class $TrackedListsTable extends TrackedLists
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('pinned')) {
+      context.handle(
+        _pinnedMeta,
+        pinned.isAcceptableOrUnknown(data['pinned']!, _pinnedMeta),
+      );
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
     return context;
   }
 
@@ -99,6 +136,14 @@ class $TrackedListsTable extends TrackedLists
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      pinned: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}pinned'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
     );
   }
 
@@ -112,10 +157,14 @@ class TrackedList extends DataClass implements Insertable<TrackedList> {
   final int id;
   final String name;
   final DateTime createdAt;
+  final bool pinned;
+  final int position;
   const TrackedList({
     required this.id,
     required this.name,
     required this.createdAt,
+    required this.pinned,
+    required this.position,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -123,6 +172,8 @@ class TrackedList extends DataClass implements Insertable<TrackedList> {
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['pinned'] = Variable<bool>(pinned);
+    map['position'] = Variable<int>(position);
     return map;
   }
 
@@ -131,6 +182,8 @@ class TrackedList extends DataClass implements Insertable<TrackedList> {
       id: Value(id),
       name: Value(name),
       createdAt: Value(createdAt),
+      pinned: Value(pinned),
+      position: Value(position),
     );
   }
 
@@ -143,6 +196,8 @@ class TrackedList extends DataClass implements Insertable<TrackedList> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      pinned: serializer.fromJson<bool>(json['pinned']),
+      position: serializer.fromJson<int>(json['position']),
     );
   }
   @override
@@ -152,20 +207,31 @@ class TrackedList extends DataClass implements Insertable<TrackedList> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'pinned': serializer.toJson<bool>(pinned),
+      'position': serializer.toJson<int>(position),
     };
   }
 
-  TrackedList copyWith({int? id, String? name, DateTime? createdAt}) =>
-      TrackedList(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        createdAt: createdAt ?? this.createdAt,
-      );
+  TrackedList copyWith({
+    int? id,
+    String? name,
+    DateTime? createdAt,
+    bool? pinned,
+    int? position,
+  }) => TrackedList(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    createdAt: createdAt ?? this.createdAt,
+    pinned: pinned ?? this.pinned,
+    position: position ?? this.position,
+  );
   TrackedList copyWithCompanion(TrackedListsCompanion data) {
     return TrackedList(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      pinned: data.pinned.present ? data.pinned.value : this.pinned,
+      position: data.position.present ? data.position.value : this.position,
     );
   }
 
@@ -174,45 +240,59 @@ class TrackedList extends DataClass implements Insertable<TrackedList> {
     return (StringBuffer('TrackedList(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('pinned: $pinned, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, createdAt);
+  int get hashCode => Object.hash(id, name, createdAt, pinned, position);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is TrackedList &&
           other.id == this.id &&
           other.name == this.name &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.pinned == this.pinned &&
+          other.position == this.position);
 }
 
 class TrackedListsCompanion extends UpdateCompanion<TrackedList> {
   final Value<int> id;
   final Value<String> name;
   final Value<DateTime> createdAt;
+  final Value<bool> pinned;
+  final Value<int> position;
   const TrackedListsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.pinned = const Value.absent(),
+    this.position = const Value.absent(),
   });
   TrackedListsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.createdAt = const Value.absent(),
+    this.pinned = const Value.absent(),
+    this.position = const Value.absent(),
   }) : name = Value(name);
   static Insertable<TrackedList> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<DateTime>? createdAt,
+    Expression<bool>? pinned,
+    Expression<int>? position,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (createdAt != null) 'created_at': createdAt,
+      if (pinned != null) 'pinned': pinned,
+      if (position != null) 'position': position,
     });
   }
 
@@ -220,11 +300,15 @@ class TrackedListsCompanion extends UpdateCompanion<TrackedList> {
     Value<int>? id,
     Value<String>? name,
     Value<DateTime>? createdAt,
+    Value<bool>? pinned,
+    Value<int>? position,
   }) {
     return TrackedListsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       createdAt: createdAt ?? this.createdAt,
+      pinned: pinned ?? this.pinned,
+      position: position ?? this.position,
     );
   }
 
@@ -240,6 +324,12 @@ class TrackedListsCompanion extends UpdateCompanion<TrackedList> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (pinned.present) {
+      map['pinned'] = Variable<bool>(pinned.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
     return map;
   }
 
@@ -248,7 +338,9 @@ class TrackedListsCompanion extends UpdateCompanion<TrackedList> {
     return (StringBuffer('TrackedListsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('pinned: $pinned, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
@@ -319,8 +411,27 @@ class $ListItemsTable extends ListItems
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, listId, label, done, createdAt];
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    listId,
+    label,
+    done,
+    createdAt,
+    position,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -364,6 +475,12 @@ class $ListItemsTable extends ListItems
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
     return context;
   }
 
@@ -393,6 +510,10 @@ class $ListItemsTable extends ListItems
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
     );
   }
 
@@ -408,12 +529,14 @@ class ListItem extends DataClass implements Insertable<ListItem> {
   final String label;
   final bool done;
   final DateTime createdAt;
+  final int position;
   const ListItem({
     required this.id,
     required this.listId,
     required this.label,
     required this.done,
     required this.createdAt,
+    required this.position,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -423,6 +546,7 @@ class ListItem extends DataClass implements Insertable<ListItem> {
     map['label'] = Variable<String>(label);
     map['done'] = Variable<bool>(done);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['position'] = Variable<int>(position);
     return map;
   }
 
@@ -433,6 +557,7 @@ class ListItem extends DataClass implements Insertable<ListItem> {
       label: Value(label),
       done: Value(done),
       createdAt: Value(createdAt),
+      position: Value(position),
     );
   }
 
@@ -447,6 +572,7 @@ class ListItem extends DataClass implements Insertable<ListItem> {
       label: serializer.fromJson<String>(json['label']),
       done: serializer.fromJson<bool>(json['done']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      position: serializer.fromJson<int>(json['position']),
     );
   }
   @override
@@ -458,6 +584,7 @@ class ListItem extends DataClass implements Insertable<ListItem> {
       'label': serializer.toJson<String>(label),
       'done': serializer.toJson<bool>(done),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'position': serializer.toJson<int>(position),
     };
   }
 
@@ -467,12 +594,14 @@ class ListItem extends DataClass implements Insertable<ListItem> {
     String? label,
     bool? done,
     DateTime? createdAt,
+    int? position,
   }) => ListItem(
     id: id ?? this.id,
     listId: listId ?? this.listId,
     label: label ?? this.label,
     done: done ?? this.done,
     createdAt: createdAt ?? this.createdAt,
+    position: position ?? this.position,
   );
   ListItem copyWithCompanion(ListItemsCompanion data) {
     return ListItem(
@@ -481,6 +610,7 @@ class ListItem extends DataClass implements Insertable<ListItem> {
       label: data.label.present ? data.label.value : this.label,
       done: data.done.present ? data.done.value : this.done,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      position: data.position.present ? data.position.value : this.position,
     );
   }
 
@@ -491,13 +621,14 @@ class ListItem extends DataClass implements Insertable<ListItem> {
           ..write('listId: $listId, ')
           ..write('label: $label, ')
           ..write('done: $done, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, listId, label, done, createdAt);
+  int get hashCode => Object.hash(id, listId, label, done, createdAt, position);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -506,7 +637,8 @@ class ListItem extends DataClass implements Insertable<ListItem> {
           other.listId == this.listId &&
           other.label == this.label &&
           other.done == this.done &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.position == this.position);
 }
 
 class ListItemsCompanion extends UpdateCompanion<ListItem> {
@@ -515,12 +647,14 @@ class ListItemsCompanion extends UpdateCompanion<ListItem> {
   final Value<String> label;
   final Value<bool> done;
   final Value<DateTime> createdAt;
+  final Value<int> position;
   const ListItemsCompanion({
     this.id = const Value.absent(),
     this.listId = const Value.absent(),
     this.label = const Value.absent(),
     this.done = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.position = const Value.absent(),
   });
   ListItemsCompanion.insert({
     this.id = const Value.absent(),
@@ -528,6 +662,7 @@ class ListItemsCompanion extends UpdateCompanion<ListItem> {
     required String label,
     this.done = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.position = const Value.absent(),
   }) : listId = Value(listId),
        label = Value(label);
   static Insertable<ListItem> custom({
@@ -536,6 +671,7 @@ class ListItemsCompanion extends UpdateCompanion<ListItem> {
     Expression<String>? label,
     Expression<bool>? done,
     Expression<DateTime>? createdAt,
+    Expression<int>? position,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -543,6 +679,7 @@ class ListItemsCompanion extends UpdateCompanion<ListItem> {
       if (label != null) 'label': label,
       if (done != null) 'done': done,
       if (createdAt != null) 'created_at': createdAt,
+      if (position != null) 'position': position,
     });
   }
 
@@ -552,6 +689,7 @@ class ListItemsCompanion extends UpdateCompanion<ListItem> {
     Value<String>? label,
     Value<bool>? done,
     Value<DateTime>? createdAt,
+    Value<int>? position,
   }) {
     return ListItemsCompanion(
       id: id ?? this.id,
@@ -559,6 +697,7 @@ class ListItemsCompanion extends UpdateCompanion<ListItem> {
       label: label ?? this.label,
       done: done ?? this.done,
       createdAt: createdAt ?? this.createdAt,
+      position: position ?? this.position,
     );
   }
 
@@ -580,6 +719,9 @@ class ListItemsCompanion extends UpdateCompanion<ListItem> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
     return map;
   }
 
@@ -590,7 +732,8 @@ class ListItemsCompanion extends UpdateCompanion<ListItem> {
           ..write('listId: $listId, ')
           ..write('label: $label, ')
           ..write('done: $done, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
@@ -899,12 +1042,16 @@ typedef $$TrackedListsTableCreateCompanionBuilder =
       Value<int> id,
       required String name,
       Value<DateTime> createdAt,
+      Value<bool> pinned,
+      Value<int> position,
     });
 typedef $$TrackedListsTableUpdateCompanionBuilder =
     TrackedListsCompanion Function({
       Value<int> id,
       Value<String> name,
       Value<DateTime> createdAt,
+      Value<bool> pinned,
+      Value<int> position,
     });
 
 final class $$TrackedListsTableReferences
@@ -951,6 +1098,16 @@ class $$TrackedListsTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get pinned => $composableBuilder(
+    column: $table.pinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1003,6 +1160,16 @@ class $$TrackedListsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get pinned => $composableBuilder(
+    column: $table.pinned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TrackedListsTableAnnotationComposer
@@ -1022,6 +1189,12 @@ class $$TrackedListsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get pinned =>
+      $composableBuilder(column: $table.pinned, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
 
   Expression<T> listItemsRefs<T extends Object>(
     Expression<T> Function($$ListItemsTableAnnotationComposer a) f,
@@ -1080,20 +1253,28 @@ class $$TrackedListsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> pinned = const Value.absent(),
+                Value<int> position = const Value.absent(),
               }) => TrackedListsCompanion(
                 id: id,
                 name: name,
                 createdAt: createdAt,
+                pinned: pinned,
+                position: position,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> pinned = const Value.absent(),
+                Value<int> position = const Value.absent(),
               }) => TrackedListsCompanion.insert(
                 id: id,
                 name: name,
                 createdAt: createdAt,
+                pinned: pinned,
+                position: position,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -1158,6 +1339,7 @@ typedef $$ListItemsTableCreateCompanionBuilder =
       required String label,
       Value<bool> done,
       Value<DateTime> createdAt,
+      Value<int> position,
     });
 typedef $$ListItemsTableUpdateCompanionBuilder =
     ListItemsCompanion Function({
@@ -1166,6 +1348,7 @@ typedef $$ListItemsTableUpdateCompanionBuilder =
       Value<String> label,
       Value<bool> done,
       Value<DateTime> createdAt,
+      Value<int> position,
     });
 
 final class $$ListItemsTableReferences
@@ -1216,6 +1399,11 @@ class $$ListItemsTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1272,6 +1460,11 @@ class $$ListItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$TrackedListsTableOrderingComposer get listId {
     final $$TrackedListsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -1316,6 +1509,9 @@ class $$ListItemsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
 
   $$TrackedListsTableAnnotationComposer get listId {
     final $$TrackedListsTableAnnotationComposer composer = $composerBuilder(
@@ -1374,12 +1570,14 @@ class $$ListItemsTableTableManager
                 Value<String> label = const Value.absent(),
                 Value<bool> done = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> position = const Value.absent(),
               }) => ListItemsCompanion(
                 id: id,
                 listId: listId,
                 label: label,
                 done: done,
                 createdAt: createdAt,
+                position: position,
               ),
           createCompanionCallback:
               ({
@@ -1388,12 +1586,14 @@ class $$ListItemsTableTableManager
                 required String label,
                 Value<bool> done = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int> position = const Value.absent(),
               }) => ListItemsCompanion.insert(
                 id: id,
                 listId: listId,
                 label: label,
                 done: done,
                 createdAt: createdAt,
+                position: position,
               ),
           withReferenceMapper: (p0) => p0
               .map(

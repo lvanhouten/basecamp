@@ -35,7 +35,35 @@ class ListsRepository implements ListsApi {
     _bus.publish(ListItemToggled(itemId: item.id, done: !item.done));
   }
 
+  Future<void> setPinned(int listId, bool pinned) =>
+      _dao.setPinned(listId, pinned);
+
+  Future<void> renameList(int listId, String name) =>
+      _dao.renameList(listId, name);
+
+  Future<void> renameItem(int itemId, String label) =>
+      _dao.renameItem(itemId, label);
+
+  /// Persists a renumber of one list section (pinned or unpinned). The caller
+  /// passes the post-[applyReorder] id order for that section only.
+  Future<void> reorderLists(List<int> orderedIds) =>
+      _dao.reorderLists(orderedIds);
+
+  /// Persists a renumber of one item done-group (checked or unchecked). The
+  /// caller passes the post-[applyReorder] id order for that group only.
+  Future<void> reorderItems(List<int> orderedIds) =>
+      _dao.reorderItems(orderedIds);
+
   Future<void> deleteItem(int id) => _dao.deleteItem(id);
 
   Future<void> deleteList(int id) => _dao.deleteList(id);
+
+  // --- Ephemeral undo (snapshot before delete, restore on SnackBar action) ---
+  Future<ListSnapshot> snapshotList(int listId) => _dao.snapshotList(listId);
+
+  Future<int> restoreList(ListSnapshot snapshot) => _dao.restoreList(snapshot);
+
+  Future<ListItem> snapshotItem(int itemId) => _dao.snapshotItem(itemId);
+
+  Future<int> restoreItem(ListItem item) => _dao.restoreItem(item);
 }

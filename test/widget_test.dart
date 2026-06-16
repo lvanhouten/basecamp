@@ -4,6 +4,7 @@ import 'package:basecamp/core/providers.dart';
 import 'package:basecamp/core/widgets/app_drawer.dart';
 import 'package:basecamp/features/home/home_screen.dart';
 import 'package:basecamp/features/lists/data/lists_dao.dart';
+import 'package:basecamp/features/lists/lists_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -91,5 +92,99 @@ void main() {
     await tester.pump();
 
     expect(container.read(selectedModuleProvider), AppModule.brief);
+  });
+
+  group('promptForText', () {
+    testWidgets('no initial value: empty field, "Add" button', (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+      final ctx = tester.element(find.byType(Scaffold));
+
+      final future = promptForText(ctx, title: 'Title', hint: 'Hint');
+      await tester.pumpAndSettle();
+
+      // Field is empty.
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, '');
+      // Confirm button defaults to "Add".
+      expect(find.widgetWithText(FilledButton, 'Add'), findsOneWidget);
+
+      // Cancel returns null.
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+      expect(await future, isNull);
+    });
+
+    testWidgets('initial value pre-fills the field', (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+      final ctx = tester.element(find.byType(Scaffold));
+
+      final future = promptForText(
+        ctx,
+        title: 'Title',
+        hint: 'Hint',
+        initialValue: 'Groceries',
+      );
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, 'Groceries');
+      // Pre-selected so a keystroke replaces it.
+      expect(field.controller!.selection.baseOffset, 0);
+      expect(field.controller!.selection.extentOffset, 'Groceries'.length);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+      expect(await future, isNull);
+    });
+
+    testWidgets('confirm button shows the supplied action label',
+        (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+      final ctx = tester.element(find.byType(Scaffold));
+
+      final future = promptForText(
+        ctx,
+        title: 'Rename',
+        hint: 'Hint',
+        initialValue: 'Old',
+        actionLabel: 'Save',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(FilledButton, 'Save'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Add'), findsNothing);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+      await future;
+    });
+
+    testWidgets('returns the trimmed input on confirm', (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+      final ctx = tester.element(find.byType(Scaffold));
+
+      final future = promptForText(ctx, title: 'Title', hint: 'Hint');
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '  Milk  ');
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
+
+      expect(await future, 'Milk');
+    });
+
+    testWidgets('returns null on cancel', (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+      final ctx = tester.element(find.byType(Scaffold));
+
+      final future = promptForText(ctx, title: 'Title', hint: 'Hint');
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'discarded');
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(await future, isNull);
+    });
   });
 }
