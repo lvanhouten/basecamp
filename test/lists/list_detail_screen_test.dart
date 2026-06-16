@@ -233,9 +233,14 @@ void main() {
     // drag machinery registers the slot change reliably.
     final gesture =
         await tester.startGesture(tester.getCenter(handles.at(1)));
-    await tester.pump(const Duration(milliseconds: 100));
-    await gesture.moveBy(const Offset(0, -80));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 200));
+    // Drag the handle up in small steps so the ReorderableListView's drag
+    // machinery tracks the slot crossing; a single large move can land before
+    // the list registers it. Total travel well exceeds one row height.
+    for (var step = 0; step < 6; step++) {
+      await gesture.moveBy(const Offset(0, -24));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
     await gesture.up();
     await tester.pumpAndSettle();
 
