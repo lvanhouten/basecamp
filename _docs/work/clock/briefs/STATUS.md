@@ -57,8 +57,11 @@
 
 All 8 briefs integrated on `clock`, working tree clean, **`flutter analyze` clean + 223/223 tests green** at the final gate (HEAD `0975d9d` for code; ledger commit follows).
 
-**Manual emulator verification still owed** (out of automated scope per the briefs — real OS behavior can't be unit-tested):
-- Timer completion fires a heads-up notification while the app is backgrounded/dead; survives reboot (04).
-- Alarm fires full-screen over the lock screen / from a dead process; survives reboot; the chime loops until Snooze/Dismiss (07/08).
-- `POST_NOTIFICATIONS` contextual prompt on first timer create; denial path shows the in-app warning.
+**Orchestrator fix-forward (post-integration, found on first emulator launch):** `flutter_local_notifications` needs Android **core library desugaring**, which no brief configured (the Dart `analyze`/`flutter test` gate never invokes Gradle). Enabled `isCoreLibraryDesugaringEnabled` + added `desugar_jdk_libs:2.1.4` in `android/app/build.gradle.kts` (commit `28f0286`). App then built + ran.
+
+**Emulator verification — PASSED on flutter_pixel (2026-06-17):** app launches into the Brief hub; Clock card placeholder phrase "No alarms today"; Clock shell + 3 tabs, Alarms default; Stopwatch start → counts up → Lap/Pause; Timer create → live countdown → "Time's up"/Dismiss finished state; **contextual `POST_NOTIFICATIONS` prompt fired on first timer create**; alarm editor (time picker + Daily/Weekdays/Weekends presets + M–F weekday selector + label); saved alarm lists with "Weekdays" summary + enable toggle + delete; **Brief card live-updates to "1 alarm today · stopwatch running"** (real ClockApi counts, cross-module). Minor cosmetic: a sliver of the kept-alive Alarms FAB can peek on other tabs mid-layout (IndexedStack) — non-blocking.
+
+**Still owed — deeper OS behavior (can't drive cheaply via adb; explicitly out of automated scope):**
+- Timer heads-up notification actually posts to the tray while backgrounded/dead; survives reboot (04). (Note: in this session the 10s timer hit zero while the permission dialog was still open, so that one didn't post — permission now granted.)
+- Alarm fires full-screen over the lock screen / from a dead process; survives reboot; chime loops until Snooze/Dismiss (07/08).
 - Confirm the synthesized `chime.wav` sounds acceptable; swap for a nicer asset if desired.
