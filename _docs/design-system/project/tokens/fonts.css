@@ -1,0 +1,11 @@
+/* basecamp — webfonts
+ * Loaded from Google Fonts CDN.
+ *  - Hanken Grotesk  : primary UI + display sans, AND all product numerics
+ *                      (timers, stats, durations) via tabular lining figures.
+ * Numerics intentionally use the brand sans (round zero, no slash) rather than a
+ * monospace face. Code/token labels in the spec cards fall back to the system mono
+ * (--font-mono) so no extra webfont is shipped.
+ * If you self-host, replace the @import below with local @font-face rules
+ * pointing at assets/fonts/*.woff2 — the public API (the --font-* tokens) stays the same.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');

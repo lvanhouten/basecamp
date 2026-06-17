@@ -1,0 +1,184 @@
+/* ============================================================
+ * basecamp — component styles
+ * Structural + interaction (hover/active/focus/disabled) styles for the
+ * React primitives. Every color/size is a token, so theming & dark mode
+ * flow through. JSX components apply these classNames.
+ * ============================================================ */
+
+/* ---------------------------------- Button */
+.bc-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-3);
+  font-family: var(--font-sans); font-weight: var(--weight-semibold);
+  border: 1px solid transparent; border-radius: var(--radius-full);
+  cursor: pointer; white-space: nowrap; user-select: none;
+  transition: background var(--dur-fast) var(--ease-standard),
+              color var(--dur-fast) var(--ease-standard),
+              border-color var(--dur-fast) var(--ease-standard),
+              transform var(--dur-fast) var(--ease-spring),
+              box-shadow var(--dur-fast) var(--ease-standard);
+}
+.bc-btn:focus-visible { outline: none; box-shadow: var(--ring); }
+.bc-btn:active { transform: scale(0.97); }
+.bc-btn[disabled], .bc-btn[aria-disabled="true"] { cursor: not-allowed; opacity: 0.45; transform: none; }
+.bc-btn--sm { height: 34px; padding: 0 var(--space-5); font-size: var(--text-sm); gap: var(--space-2); }
+.bc-btn--md { height: 44px; padding: 0 var(--space-6); font-size: var(--text-base); }
+.bc-btn--lg { height: 52px; padding: 0 var(--space-7); font-size: var(--text-md); }
+.bc-btn--block { width: 100%; }
+
+.bc-btn--primary { background: var(--module, var(--brand)); color: var(--module-on, var(--on-brand)); }
+.bc-btn--primary:hover { background: var(--module-deep, var(--brand-hover)); }
+
+.bc-btn--secondary { background: var(--surface-card); color: var(--text-primary); border-color: var(--border-default); box-shadow: var(--shadow-xs); }
+.bc-btn--secondary:hover { background: var(--surface-sunken); border-color: var(--border-strong); }
+
+.bc-btn--ghost { background: transparent; color: var(--module, var(--brand)); }
+.bc-btn--ghost:hover { background: var(--module-tint, var(--brand-tint)); }
+
+.bc-btn--danger { background: var(--danger); color: #fff; }
+.bc-btn--danger:hover { filter: brightness(0.93); }
+.bc-btn--danger:focus-visible { box-shadow: var(--ring-danger); }
+
+.bc-btn__spinner { width: 1em; height: 1em; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: bc-spin 0.7s linear infinite; }
+@keyframes bc-spin { to { transform: rotate(360deg); } }
+.bc-btn__icon { display: inline-flex; width: 1.15em; height: 1.15em; }
+.bc-btn__icon svg { width: 100%; height: 100%; }
+
+/* ---------------------------------- IconButton */
+.bc-iconbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; border-radius: var(--radius-full);
+  cursor: pointer; color: var(--text-secondary); background: transparent;
+  transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-spring);
+}
+.bc-iconbtn:focus-visible { outline: none; box-shadow: var(--ring); }
+.bc-iconbtn:active { transform: scale(0.92); }
+.bc-iconbtn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.bc-iconbtn--sm { width: 34px; height: 34px; }
+.bc-iconbtn--md { width: 44px; height: 44px; }
+.bc-iconbtn--lg { width: 52px; height: 52px; }
+.bc-iconbtn svg { width: 20px; height: 20px; }
+.bc-iconbtn--ghost:hover { background: var(--surface-sunken); color: var(--text-primary); }
+.bc-iconbtn--soft { background: var(--module-tint, var(--brand-tint)); color: var(--module, var(--brand)); }
+.bc-iconbtn--soft:hover { filter: brightness(0.97); }
+.bc-iconbtn--solid { background: var(--module, var(--brand)); color: var(--module-on, var(--on-brand)); }
+.bc-iconbtn--solid:hover { background: var(--module-deep, var(--brand-hover)); }
+
+/* ---------------------------------- Field / Input */
+.bc-field { display: flex; flex-direction: column; gap: var(--space-3); }
+.bc-field__label { font: var(--type-label); color: var(--text-primary); }
+.bc-field__hint { font: var(--type-caption); color: var(--text-tertiary); }
+.bc-field__hint--error { color: var(--danger); }
+.bc-input {
+  width: 100%; height: 44px; padding: 0 var(--space-5);
+  font: var(--type-body); color: var(--text-primary);
+  background: var(--surface-card); border: 1px solid var(--border-default);
+  border-radius: var(--radius-md); transition: border-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
+}
+.bc-input::placeholder { color: var(--text-tertiary); }
+.bc-input:hover { border-color: var(--border-strong); }
+.bc-input:focus { outline: none; border-color: var(--brand); box-shadow: var(--ring); }
+.bc-input[aria-invalid="true"] { border-color: var(--danger); }
+.bc-input[aria-invalid="true"]:focus { box-shadow: var(--ring-danger); }
+.bc-input[disabled] { background: var(--surface-sunken); color: var(--text-disabled); cursor: not-allowed; }
+textarea.bc-input { height: auto; padding: var(--space-4) var(--space-5); resize: vertical; line-height: var(--leading-normal); }
+
+/* ---------------------------------- Switch */
+.bc-switch { position: relative; display: inline-flex; align-items: center; width: 50px; height: 30px; flex: none; cursor: pointer; }
+.bc-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.bc-switch__track { position: absolute; inset: 0; background: var(--neutral-300); border-radius: var(--radius-full); transition: background var(--dur-base) var(--ease-standard); }
+.bc-switch__thumb { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; background: #fff; border-radius: 50%; box-shadow: var(--shadow-sm); transition: transform var(--dur-base) var(--ease-spring); }
+.bc-switch input:checked ~ .bc-switch__track { background: var(--module, var(--brand)); }
+.bc-switch input:checked ~ .bc-switch__thumb { transform: translateX(20px); }
+.bc-switch input:focus-visible ~ .bc-switch__track { box-shadow: var(--ring); }
+.bc-switch input:disabled ~ .bc-switch__track { opacity: 0.5; }
+
+/* ---------------------------------- Checkbox */
+.bc-check { display: inline-flex; align-items: center; gap: var(--space-4); cursor: pointer; font: var(--type-body); color: var(--text-primary); }
+.bc-check input { position: absolute; opacity: 0; width: 0; height: 0; }
+.bc-check__box { width: 22px; height: 22px; flex: none; border-radius: var(--radius-xs); border: 1.5px solid var(--border-strong); background: var(--surface-card); display: inline-flex; align-items: center; justify-content: center; color: #fff; transition: background var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard); }
+.bc-check__box svg { width: 14px; height: 14px; opacity: 0; transform: scale(0.6); transition: opacity var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-spring); }
+.bc-check input:checked ~ .bc-check__box { background: var(--module, var(--brand)); border-color: var(--module, var(--brand)); }
+.bc-check input:checked ~ .bc-check__box svg { opacity: 1; transform: scale(1); }
+.bc-check input:focus-visible ~ .bc-check__box { box-shadow: var(--ring); }
+
+/* ---------------------------------- Segmented control */
+.bc-segmented { display: inline-flex; padding: 3px; gap: 2px; background: var(--surface-sunken); border-radius: var(--radius-full); }
+.bc-segmented__opt { appearance: none; border: none; background: transparent; cursor: pointer; font: var(--type-label); color: var(--text-secondary); padding: 7px 16px; border-radius: var(--radius-full); transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard); }
+.bc-segmented__opt:hover { color: var(--text-primary); }
+.bc-segmented__opt[aria-selected="true"] { background: var(--surface-card); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+
+/* ---------------------------------- Card */
+.bc-card { background: var(--surface-card); border-radius: var(--radius-lg); padding: var(--space-6); }
+.bc-card--raised { box-shadow: var(--shadow-md); }
+.bc-card--outlined { border: 1px solid var(--border-subtle); }
+.bc-card--flat { background: var(--surface-sunken); }
+.bc-card--interactive { cursor: pointer; transition: transform var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard); }
+.bc-card--interactive:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.bc-card--interactive:active { transform: translateY(0); }
+
+/* ---------------------------------- Badge */
+.bc-badge { display: inline-flex; align-items: center; gap: var(--space-2); font: var(--type-caption); font-weight: var(--weight-semibold); padding: 3px 9px; border-radius: var(--radius-full); line-height: 1.4; }
+.bc-badge__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.bc-badge--neutral { background: var(--surface-sunken); color: var(--text-secondary); }
+.bc-badge--brand   { background: var(--brand-tint); color: var(--brand-hover); }
+.bc-badge--module  { background: var(--module-tint, var(--brand-tint)); color: var(--module-deep, var(--brand-hover)); }
+.bc-badge--success { background: var(--success-tint); color: var(--green-700); }
+.bc-badge--warning { background: var(--warning-tint); color: var(--amber-700); }
+.bc-badge--danger  { background: var(--danger-tint); color: var(--red-700); }
+.bc-badge--solid   { background: var(--module, var(--brand)); color: var(--module-on, var(--on-brand)); }
+
+/* ---------------------------------- Tag (removable chip) */
+.bc-tag { display: inline-flex; align-items: center; gap: var(--space-3); font: var(--type-label); padding: 6px 6px 6px 13px; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+.bc-tag--plain { padding: 6px 13px; }
+.bc-tag__x { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: none; border-radius: 50%; background: transparent; color: var(--text-tertiary); cursor: pointer; transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard); }
+.bc-tag__x:hover { background: var(--border-subtle); color: var(--text-primary); }
+.bc-tag__x svg { width: 13px; height: 13px; }
+
+/* ---------------------------------- Avatar */
+.bc-avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: var(--radius-full); background: var(--module-tint, var(--brand-tint)); color: var(--module-deep, var(--brand-hover)); font-family: var(--font-sans); font-weight: var(--weight-bold); overflow: hidden; object-fit: cover; }
+.bc-avatar--xs { width: 24px; height: 24px; font-size: 10px; }
+.bc-avatar--sm { width: 32px; height: 32px; font-size: 12px; }
+.bc-avatar--md { width: 40px; height: 40px; font-size: 15px; }
+.bc-avatar--lg { width: 56px; height: 56px; font-size: 20px; }
+.bc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------------------------------- Progress ring */
+.bc-ring { display: inline-grid; place-items: center; position: relative; }
+.bc-ring svg { transform: rotate(-90deg); }
+.bc-ring__track { stroke: var(--border-subtle); fill: none; }
+.bc-ring__fill { stroke: var(--module, var(--brand)); fill: none; stroke-linecap: round; transition: stroke-dashoffset var(--dur-slow) var(--ease-out); }
+.bc-ring__label { position: absolute; font-family: var(--font-numeric); font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------- List item */
+.bc-listitem { display: flex; align-items: center; gap: var(--space-5); padding: var(--space-4) var(--space-5); background: var(--surface-card); width: 100%; text-align: left; border: none; font-family: var(--font-sans); }
+.bc-listitem--button { cursor: pointer; transition: background var(--dur-fast) var(--ease-standard); }
+.bc-listitem--button:hover { background: var(--surface-sunken); }
+.bc-listitem__lead { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--module-tint, var(--brand-tint)); color: var(--module, var(--brand)); }
+.bc-listitem__lead svg { width: 20px; height: 20px; }
+.bc-listitem__body { flex: 1; min-width: 0; }
+.bc-listitem__title { display: block; font: var(--type-subhead); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bc-listitem__sub { display: block; font: var(--type-caption); color: var(--text-tertiary); margin-top: 1px; }
+.bc-listitem__title--done { text-decoration: line-through; color: var(--text-tertiary); }
+.bc-listitem__trail { flex: none; color: var(--text-tertiary); display: inline-flex; align-items: center; gap: var(--space-3); }
+
+/* ---------------------------------- Stat */
+.bc-stat { display: flex; flex-direction: column; gap: var(--space-1); }
+.bc-stat__value { font-family: var(--font-numeric); font-weight: 700; font-size: var(--text-2xl); color: var(--text-primary); line-height: 1; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.01em; }
+.bc-stat__value sup { font-size: 0.5em; color: var(--text-tertiary); font-weight: 400; margin-left: 2px; }
+.bc-stat__label { font: var(--type-caption); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--text-tertiary); }
+
+/* ---------------------------------- Tab bar (bottom nav) */
+.bc-tabbar { display: flex; align-items: stretch; gap: var(--space-2); background: var(--surface-card); border-top: 1px solid var(--border-subtle); padding: var(--space-3) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom)); }
+.bc-tabbar__item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: var(--space-2) 0; border: none; background: transparent; cursor: pointer; color: var(--text-tertiary); border-radius: var(--radius-md); transition: color var(--dur-fast) var(--ease-standard); }
+.bc-tabbar__item svg { width: 24px; height: 24px; }
+.bc-tabbar__item span { font: var(--type-caption); font-weight: var(--weight-semibold); }
+.bc-tabbar__item[aria-selected="true"] { color: var(--module, var(--brand)); }
+.bc-tabbar__item:hover { color: var(--text-secondary); }
+.bc-tabbar__item[aria-selected="true"]:hover { color: var(--module, var(--brand)); }
+
+/* Center action — a raised FAB sitting between the tab items (launcher nav) */
+.bc-tabbar__add { flex: none; width: 58px; height: 58px; margin: 0 var(--space-4); border-radius: var(--radius-full); border: none; background: var(--brand); color: #fff; cursor: pointer; display: grid; place-items: center; box-shadow: 0 6px 16px rgba(255,90,60,0.40); transition: transform var(--dur-fast) var(--ease-spring), background var(--dur-fast) var(--ease-standard); }
+.bc-tabbar__add svg { width: 28px; height: 28px; }
+.bc-tabbar__add:hover { background: var(--brand-hover); }
+.bc-tabbar__add:active { transform: scale(0.90); }
+.bc-tabbar__add:focus-visible { outline: none; box-shadow: var(--ring), 0 6px 16px rgba(255,90,60,0.40); }

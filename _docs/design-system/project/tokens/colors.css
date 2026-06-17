@@ -1,0 +1,174 @@
+/* basecamp — color system
+ * Bold & playful: coral primary, sunshine-yellow joy accent, deep-navy ink.
+ * Base palette scales (raw values) + semantic aliases (what you reference in UI).
+ * Always build UI against the semantic aliases (--surface-*, --text-*, --border-*,
+ * --brand-*, --module-*) so the dark theme and module theming swap cleanly.
+ */
+
+:root {
+  /* ---- Neutrals — cool, navy-leaning grey ramp, grounded in the brand navy ---- */
+  --neutral-0:   #FFFFFF;
+  --neutral-50:  #F6F7F9;
+  --neutral-100: #EDEEF2;
+  --neutral-200: #E0E2E9;
+  --neutral-300: #C9CCD6;
+  --neutral-400: #A6AAB8;
+  --neutral-500: #7E8394;
+  --neutral-600: #5B6072;
+  --neutral-700: #3F4356;
+  --neutral-800: #282C3D;
+  --neutral-900: #1A1A2E;   /* brand navy — primary ink */
+  --neutral-950: #111120;
+
+  /* ---- Primary — coral (the basecamp brand color) ---- */
+  --coral-50:  #FFF0EC;
+  --coral-100: #FFDED4;
+  --coral-200: #FFC0AE;
+  --coral-300: #FF9D83;
+  --coral-400: #FF7857;
+  --coral-500: #FF5A3C;   /* brand */
+  --coral-600: #ED4426;
+  --coral-700: #C8331A;
+  --coral-800: #9E2916;
+  --coral-900: #7A2414;
+
+  /* ---- Joy — sunshine yellow. Highlights, streaks, celebration. ---- */
+  --sun-50:  #FFF7E0;
+  --sun-100: #FFEFC0;
+  --sun-300: #FFD876;
+  --sun-500: #FFC844;
+  --sun-700: #D99B14;
+  --sun-900: #99690A;
+
+  /* ---- Module accents — a vibrant, harmonious quartet, one per module ---- */
+  /* Home — coral (mirrors the brand) */
+  /* Lists — grass green */
+  --grass-50:  #E7F6EF;
+  --grass-100: #CDEDDF;
+  --grass-300: #82D3AE;
+  --grass-500: #1FA971;
+  --grass-700: #167F54;
+  --grass-900: #0F5238;
+  /* Workouts — violet */
+  --violet-50:  #EFEBFF;
+  --violet-100: #DED6FF;
+  --violet-300: #B3A3FF;
+  --violet-500: #6C5CE7;
+  --violet-700: #4B3DBE;
+  --violet-900: #322880;
+  /* Clock — sky blue */
+  --sky-50:  #E7F2FD;
+  --sky-100: #CCE3FB;
+  --sky-300: #84BCF3;
+  --sky-500: #2E90E0;
+  --sky-700: #1E6BB0;
+  --sky-900: #184F82;
+
+  /* ---- Semantic status ---- */
+  --green-50:  #E7F6EF;  --green-500: #1FA971;  --green-700: #167F54;
+  --amber-50:  #FEF2DA;  --amber-500: #F5A623;  --amber-700: #B5760C;
+  --red-50:    #FCE7E8;  --red-500:   #E5343B;  --red-700:   #B4242A;
+
+  /* ================= SEMANTIC ALIASES (light) ================= */
+
+  /* Surfaces */
+  --surface-app:     var(--neutral-50);
+  --surface-card:    var(--neutral-0);
+  --surface-raised:  var(--neutral-0);
+  --surface-sunken:  var(--neutral-100);
+  --surface-inverse: var(--neutral-900);
+  --surface-scrim:   rgba(17, 17, 32, 0.42);
+
+  /* Text */
+  --text-primary:   var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-tertiary:  var(--neutral-500);
+  --text-disabled:  var(--neutral-400);
+  --text-inverse:   var(--neutral-0);
+  --text-link:      var(--coral-600);
+
+  /* Borders / hairlines */
+  --border-subtle:  var(--neutral-200);
+  --border-default: var(--neutral-300);
+  --border-strong:  var(--neutral-400);
+
+  /* Brand */
+  --brand:        var(--coral-500);
+  --brand-hover:  var(--coral-600);
+  --brand-active: var(--coral-700);
+  --brand-tint:   var(--coral-50);
+  --brand-border: var(--coral-200);
+  --on-brand:     var(--neutral-0);
+
+  /* Joy accent (highlights, streaks, celebratory bits) */
+  --joy:        var(--sun-500);
+  --joy-tint:   var(--sun-50);
+  --joy-ink:    var(--sun-900);
+
+  /* Status */
+  --success:      var(--green-500);
+  --success-tint: var(--green-50);
+  --warning:      var(--amber-500);
+  --warning-tint: var(--amber-50);
+  --danger:       var(--red-500);
+  --danger-tint:  var(--red-50);
+
+  /* Module theming — default (Home) maps to brand.
+     Set --module-* by scoping [data-module="lists|workouts|clock"] (see below). */
+  --module:       var(--coral-500);
+  --module-deep:  var(--coral-700);
+  --module-tint:  var(--coral-50);
+  --module-on:    var(--neutral-0);
+}
+
+/* ---- Module scopes ---- *
+ * Brand-unified: every module shares the coral brand accent; modules are
+ * differentiated by ICON, not color. The grass/violet/sky scales above remain
+ * defined so per-module theming can be re-enabled here later if desired. */
+[data-module="home"],
+[data-module="lists"],
+[data-module="workouts"],
+[data-module="clock"] { --module: var(--coral-500); --module-deep: var(--coral-700); --module-tint: var(--coral-50); --module-on: var(--neutral-0); }
+
+/* ===================== DARK THEME ===================== */
+[data-theme="dark"] {
+  --surface-app:     #131326;
+  --surface-card:    #1E1E36;
+  --surface-raised:  #262642;
+  --surface-sunken:  #0E0E1E;
+  --surface-inverse: var(--neutral-50);
+  --surface-scrim:   rgba(0, 0, 0, 0.58);
+
+  --text-primary:   #F4F3F8;
+  --text-secondary: #ADB0C2;
+  --text-tertiary:  #7E8194;
+  --text-disabled:  #5B6072;
+  --text-inverse:   var(--neutral-900);
+  --text-link:      var(--coral-300);
+
+  --border-subtle:  rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.14);
+  --border-strong:  rgba(255, 255, 255, 0.24);
+
+  --brand:        var(--coral-500);
+  --brand-hover:  var(--coral-400);
+  --brand-active: var(--coral-300);
+  --brand-tint:   rgba(255, 90, 60, 0.18);
+  --brand-border: rgba(255, 90, 60, 0.36);
+  --on-brand:     #FFFFFF;
+
+  --joy-tint:     rgba(255, 200, 68, 0.18);
+
+  --success-tint: rgba(31, 169, 113, 0.18);
+  --warning-tint: rgba(245, 166, 35, 0.18);
+  --danger-tint:  rgba(229, 52, 59, 0.18);
+}
+
+[data-theme="dark"][data-module="home"],
+[data-theme="dark"] [data-module="home"],
+[data-theme="dark"][data-module="lists"],
+[data-theme="dark"] [data-module="lists"],
+[data-theme="dark"][data-module="workouts"],
+[data-theme="dark"] [data-module="workouts"],
+[data-theme="dark"][data-module="clock"],
+[data-theme="dark"] [data-module="clock"] { --module: var(--coral-500); --module-tint: rgba(255,90,60,0.18); }

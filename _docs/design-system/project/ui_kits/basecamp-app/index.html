@@ -1,0 +1,108 @@
+<!-- @dsCard group="basecamp App" viewport="480x980" name="basecamp — interactive app" subtitle="Brief · Calendar · ⊕ · Activity · Modules. Tap a module tile to open it; ⊕ quick-adds." -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>basecamp — app</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="kit.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="Shell.jsx"></script>
+<script type="text/babel" src="BriefScreen.jsx"></script>
+<script type="text/babel" src="CalendarScreen.jsx"></script>
+<script type="text/babel" src="ModulesScreen.jsx"></script>
+<script type="text/babel" src="ListsScreen.jsx"></script>
+<script type="text/babel" src="WorkoutsScreen.jsx"></script>
+<script type="text/babel" src="ClockScreen.jsx"></script>
+<script type="text/babel" src="ActivityScreen.jsx"></script>
+<script type="text/babel" src="AddSheet.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+  const { PhoneFrame } = window.BC.Shell;
+  const { TabBar } = window.BasecampDesignSystem_e1341e;
+  const S = window.BC.Screens;
+  const Sheet = window.BC.AddSheet;
+  const I = window.BC.Icons;
+
+  const NAV = [
+    { value: 'brief', label: 'Brief', icon: <I.home /> },
+    { value: 'calendar', label: 'Calendar', icon: <I.calendar /> },
+    { value: 'activity', label: 'Activity', icon: <I.pulse /> },
+    { value: 'modules', label: 'Modules', icon: <I.grid /> },
+  ];
+
+  const VIEWS = ['brief', 'calendar', 'activity', 'modules', 'lists', 'workouts', 'clock'];
+
+  function App() {
+    const stored = localStorage.getItem('bc-view');
+    const [view, setView] = React.useState(VIEWS.includes(stored) ? stored : 'brief');
+    const [theme, setTheme] = React.useState(() => localStorage.getItem('bc-theme') || 'light');
+    const [adding, setAdding] = React.useState(false);
+    const [toast, setToast] = React.useState(null);
+    React.useEffect(() => { localStorage.setItem('bc-view', view); }, [view]);
+    React.useEffect(() => { localStorage.setItem('bc-theme', theme); }, [theme]);
+
+    React.useEffect(() => {
+      const fit = () => {
+        const el = document.querySelector('.bc-phone');
+        if (!el) return;
+        const s = Math.min(1, (window.innerHeight - 36) / 916, (window.innerWidth - 24) / 462);
+        el.style.transform = `scale(${s})`;
+      };
+      fit();
+      window.addEventListener('resize', fit);
+      return () => window.removeEventListener('resize', fit);
+    }, []);
+
+    const screenMap = {
+      brief: <S.Brief go={setView} />,
+      calendar: <S.Calendar go={setView} />,
+      activity: <S.Activity go={setView} />,
+      modules: <S.Modules go={setView} onAddModule={(name) => { setToast(`${name} is coming soon`); setTimeout(() => setToast(null), 2200); }} />,
+      lists: <S.Lists onBack={() => setView('modules')} />,
+      workouts: <S.Workouts onBack={() => setView('modules')} />,
+      clock: <S.Clock onBack={() => setView('modules')} />,
+    };
+    const screenEl = screenMap[view] || screenMap.brief;
+
+    const onAdd = ({ text, dest }) => {
+      setToast(`Added to ${dest === 'list' ? 'your list' : dest}`);
+      setTimeout(() => setToast(null), 2200);
+    };
+
+    return (
+      <div data-theme={theme === 'dark' ? 'dark' : undefined}>
+        <div className="bc-kit-toggle">
+          <button aria-pressed={theme === 'light'} aria-label="Light mode" onClick={() => setTheme('light')}><I.sun /></button>
+          <button aria-pressed={theme === 'dark'} aria-label="Dark mode" onClick={() => setTheme('dark')}><I.moon /></button>
+        </div>
+        <div className="bc-kit-stage" data-theme={theme === 'dark' ? 'dark' : undefined}>
+          <PhoneFrame theme={theme}>
+            {screenEl}
+
+            <TabBar
+              items={NAV}
+              value={['lists', 'workouts', 'clock'].includes(view) ? 'modules' : view}
+              onChange={setView}
+              centerAction={{ icon: <I.plus />, label: 'Quick add', onClick: () => setAdding(true) }}
+            />
+
+            {adding && <Sheet onClose={() => setAdding(false)} onAdd={onAdd} />}
+            {toast && <div className="bc-toast">{toast}</div>}
+          </PhoneFrame>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="basecamp app icon">
+  <defs>
+    <linearGradient id="bc-bg" x1="0" y1="0" x2="0" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF7857"></stop>
+      <stop offset="1" stop-color="#ED4426"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="28" fill="url(#bc-bg)"></rect>
+  
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M60 38 L98 96 H22 L60 38 Z M60 64 L74 96 H46 L60 64 Z" fill="#FFFFFF"></path>
+  
+  <path d="M53.5 28 L60 38 L66.5 28" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>

@@ -1,10 +1,16 @@
 ---
-status: accepted
+status: superseded
 date: 2026-06-15
 deciders: Development
 ---
 
 # Drawer-launched hub navigation, not a bottom navigation bar
+
+> **Superseded by [ADR-0005](0005-launcher-bottom-bar-navigation.md)** (2026-06-17). The app
+> adopts a launcher bottom bar (Brief · Calendar · ⊕ · Activity · Modules) with modules
+> pushed from the Modules grid. The *architectural* rationale below — landing derived from
+> persisted domain state, not remembered navigation — is retained by ADR-0005; only the
+> chrome (drawer + `IndexedStack` peers) is replaced.
 
 Basecamp is a hub of modules (Brief, Lists, Workouts, Clock) with 5+ modules
 expected. Navigation is a drawer launched from the Brief (the home screen);

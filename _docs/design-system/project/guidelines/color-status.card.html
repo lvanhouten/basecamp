@@ -1,0 +1,27 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Status colors" subtitle="Calmed-down success / warning / danger — base + tint." -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; padding:20px 22px; background:var(--surface-app); font-family:var(--font-sans); display:flex; gap:16px; }
+  .s { flex:1; }
+  .pair { display:flex; gap:7px; }
+  .base { flex:2; height:60px; border-radius:var(--radius-sm); display:flex; align-items:flex-end; padding:8px; color:#fff; font-size:12px; font-weight:700; }
+  .tint { flex:1; height:60px; border-radius:var(--radius-sm); box-shadow:inset 0 0 0 1px rgba(27,31,38,.06); }
+  .meta { margin-top:8px; }
+  .name { font-size:13px; font-weight:700; color:var(--text-primary); }
+  .v { font-size:10px; color:var(--text-tertiary); font-family:var(--font-mono); }
+</style></head>
+<body>
+  <div class="s">
+    <div class="pair"><div class="base" style="background:var(--success)">Aa</div><div class="tint" style="background:var(--success-tint)"></div></div>
+    <div class="meta"><div class="name">Success</div><div class="v">#1FA971</div></div>
+  </div>
+  <div class="s">
+    <div class="pair"><div class="base" style="background:var(--warning)">Aa</div><div class="tint" style="background:var(--warning-tint)"></div></div>
+    <div class="meta"><div class="name">Warning</div><div class="v">#F5A623</div></div>
+  </div>
+  <div class="s">
+    <div class="pair"><div class="base" style="background:var(--danger)">Aa</div><div class="tint" style="background:var(--danger-tint)"></div></div>
+    <div class="meta"><div class="name">Danger</div><div class="v">#E5343B</div></div>
+  </div>
+</body></html>

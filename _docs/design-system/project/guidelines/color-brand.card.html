@@ -1,0 +1,38 @@
+<!-- @dsCard group="Colors" viewport="700x190" name="Brand — coral & joy" subtitle="Coral primary scale + the sunshine-yellow joy accent." -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; padding:20px 22px; background:var(--surface-app); font-family:var(--font-sans); display:flex; flex-direction:column; gap:14px; }
+  .row { display:flex; gap:8px; }
+  .sw { flex:1; display:flex; flex-direction:column; gap:6px; }
+  .chip { height:54px; border-radius:var(--radius-sm); box-shadow:inset 0 0 0 1px rgba(17,17,32,.06); }
+  .k { font-size:11px; font-weight:600; color:var(--text-secondary); }
+  .v { font-size:10px; color:var(--text-tertiary); font-family:var(--font-mono); }
+  .star { position:absolute; margin:6px; font-size:10px; color:#fff; font-weight:700; }
+  .joy { display:flex; gap:8px; align-items:center; }
+  .joychip { height:30px; flex:1; border-radius:var(--radius-sm); box-shadow:inset 0 0 0 1px rgba(17,17,32,.06); }
+  .lab { font-size:11px; font-weight:700; color:var(--text-primary); width:84px; flex:none; }
+</style></head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--coral-50)"></div><span class="k">50</span><span class="v">#FFF0EC</span></div>
+    <div class="sw"><div class="chip" style="background:var(--coral-100)"></div><span class="k">100</span><span class="v">#FFDED4</span></div>
+    <div class="sw"><div class="chip" style="background:var(--coral-200)"></div><span class="k">200</span><span class="v">#FFC0AE</span></div>
+    <div class="sw"><div class="chip" style="background:var(--coral-300)"></div><span class="k">300</span><span class="v">#FF9D83</span></div>
+    <div class="sw"><div class="chip" style="background:var(--coral-400)"></div><span class="k">400</span><span class="v">#FF7857</span></div>
+    <div class="sw"><div class="chip" style="background:var(--coral-500);position:relative"><span class="star">★ brand</span></div><span class="k">500</span><span class="v">#FF5A3C</span></div>
+    <div class="sw"><div class="chip" style="background:var(--coral-600)"></div><span class="k">600</span><span class="v">#ED4426</span></div>
+    <div class="sw"><div class="chip" style="background:var(--coral-700)"></div><span class="k">700</span><span class="v">#C8331A</span></div>
+    <div class="sw"><div class="chip" style="background:var(--coral-800)"></div><span class="k">800</span><span class="v">#9E2916</span></div>
+    <div class="sw"><div class="chip" style="background:var(--coral-900)"></div><span class="k">900</span><span class="v">#7A2414</span></div>
+  </div>
+  <div class="joy">
+    <span class="lab">Joy · yellow</span>
+    <div class="joychip" style="background:var(--sun-50)"></div>
+    <div class="joychip" style="background:var(--sun-100)"></div>
+    <div class="joychip" style="background:var(--sun-300)"></div>
+    <div class="joychip" style="background:var(--sun-500);position:relative"><span class="star" style="color:var(--neutral-900)">★ 500 #FFC844</span></div>
+    <div class="joychip" style="background:var(--sun-700)"></div>
+    <div class="joychip" style="background:var(--sun-900)"></div>
+  </div>
+</body></html>

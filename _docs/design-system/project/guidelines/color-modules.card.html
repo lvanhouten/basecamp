@@ -1,0 +1,17 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Module treatment" subtitle="Modules share the coral brand — differentiated by icon, not color." -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; padding:22px 24px; background:var(--surface-app); font-family:var(--font-sans); display:flex; gap:14px; align-items:stretch; }
+  .mod { flex:1; display:flex; flex-direction:column; align-items:center; gap:10px; padding:14px 8px; background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); }
+  .icon { width:44px; height:44px; border-radius:var(--radius-md); display:grid; place-items:center; background:var(--brand-tint); color:var(--brand); }
+  .icon svg { width:24px; height:24px; }
+  .name { font:var(--type-label); color:var(--text-primary); }
+  svg.line { stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+</style></head>
+<body>
+  <div class="mod"><span class="icon"><svg class="line" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v11h14V9"/></svg></span><span class="name">Home</span></div>
+  <div class="mod"><span class="icon"><svg class="line" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg></span><span class="name">Lists</span></div>
+  <div class="mod"><span class="icon"><svg class="line" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M3.8 8.6 8.6 3.8M14 18.6l1.4 1.4M15.4 15.4 20.2 20.2"/></svg></span><span class="name">Workouts</span></div>
+  <div class="mod"><span class="icon"><svg class="line" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="name">Clock</span></div>
+</body></html>
