@@ -10,6 +10,9 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Required by flutter_local_notifications (timezone/JSR-310 APIs) so
+        // scheduled timer/alarm notifications build on older Android API levels.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -42,4 +45,9 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Backport of java.time / desugared JDK APIs used by flutter_local_notifications.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

@@ -37,6 +37,17 @@ dependencies:
   flutter_riverpod: ^3.3.2
   drift: ^2.34.0
   drift_flutter: ^0.3.0
+  # Clock module — OS-scheduled notifications for Timer completion (and Alarms,
+  # 07-alarm-data). The OS holds the schedule so it fires while the app is
+  # backgrounded or dead (ADR-0003). `timezone` lets us schedule at a local
+  # wall-clock instant.
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  # Clock Alarms (07-alarm-data) — loops the bundled default chime on the alarm
+  # ring screen until Snooze/Dismiss (ADR-0003: continuous ringing is the
+  # launched screen's job, not the one-shot notification sound). Wrapped behind
+  # ChimeAudioSink so the looping-playback capability is testable without audio.
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +76,12 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Clock Alarms (07-alarm-data): the bundled default chime the ring screen
+  # loops until Snooze/Dismiss. NOTE: assets/audio/chime.wav committed here is a
+  # TEXT PLACEHOLDER — the orchestrator must replace it with a real .wav binary.
+  assets:
+    - assets/audio/chime.wav
 
   # To add assets to your application, add an assets section, like this:
   # assets:

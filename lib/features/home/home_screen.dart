@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_module.dart';
 import '../../core/providers.dart';
 import '../../core/widgets/app_drawer.dart';
+import '../clock/clock_tab.dart';
 
 /// The daily Brief — the hub's home and launcher. Summarizes each module and
 /// taps through to it (same destination as the drawer). The Lists card is LIVE
@@ -20,8 +21,26 @@ class HomeScreen extends ConsumerWidget {
     final listCount = ref.watch(listCountProvider).asData?.value;
     final openItems = ref.watch(openItemCountProvider).asData?.value;
 
+    // Clock summarizes as three counts, not a single Resume banner (ADR-0004).
+    final alarmsToday = ref.watch(todaysAlarmCountProvider).asData?.value;
+    final timersRunning = ref.watch(runningTimerCountProvider).asData?.value;
+    final stopwatchRunning = ref.watch(stopwatchRunningProvider).asData?.value;
+
     void go(AppModule m) =>
         ref.read(selectedModuleProvider.notifier).select(m);
+
+    /// Open Clock to the precedence-selected tab (ADR-0004): a running
+    /// Stopwatch wins, else a running Timer, else Alarms.
+    void goClock() {
+      ref.read(selectedClockTabProvider.notifier).select(
+            entryTab(
+              stopwatchRunning: stopwatchRunning ?? false,
+              runningTimerCount: timersRunning ?? 0,
+              todaysAlarmCount: alarmsToday ?? 0,
+            ),
+          );
+      go(AppModule.clock);
+    }
 
     return Scaffold(
       drawer: const AppDrawer(),
@@ -52,8 +71,8 @@ class HomeScreen extends ConsumerWidget {
           _BriefCard(
             icon: Icons.schedule,
             title: 'Clock',
-            line: 'No alarms set for today',
-            onTap: () => go(AppModule.clock),
+            line: _clockLine(alarmsToday, timersRunning, stopwatchRunning),
+            onTap: goClock,
           ),
         ],
       ),
@@ -65,6 +84,27 @@ class HomeScreen extends ConsumerWidget {
     final l = lists == 1 ? '1 list' : '$lists lists';
     final o = open == 1 ? '1 open item' : '$open open items';
     return '$l · $o';
+  }
+
+  /// The Clock summary phrase (ADR-0004): three counts, each phrased for what it
+  /// is — no uniform "Active N" label. Alarms are a future-state summary line so
+  /// they always show ("Enabled" is the alarm term; "active" is avoided per the
+  /// glossary); a running Timer/Stopwatch only appears when actually live, so
+  /// the all-placeholder state reads naturally as just "No alarms today".
+  String _clockLine(int? alarms, int? timers, bool? stopwatch) {
+    if (alarms == null || timers == null || stopwatch == null) return 'Loading…';
+
+    final segments = <String>[
+      switch (alarms) {
+        0 => 'No alarms today',
+        1 => '1 alarm today',
+        _ => '$alarms alarms today',
+      },
+      if (timers == 1) '1 timer running',
+      if (timers > 1) '$timers timers running',
+      if (stopwatch) 'stopwatch running',
+    ];
+    return segments.join(' · ');
   }
 
   String _greeting(int hour) {

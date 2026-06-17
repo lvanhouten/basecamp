@@ -19,7 +19,9 @@ migrate_working_dir/
 .idea/
 
 # Claude Code agent config + git worktrees container
-.claude/
+# Track the shared settings.json so worktree-isolated agents inherit the allowlist; ignore everything else under .claude/.
+.claude/*
+!.claude/settings.json
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line

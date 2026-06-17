@@ -85,7 +85,7 @@ both screens.
 ## Open questions / ideas
 
 - List icon/color per list (loose metadata — candidate for a JSON column rather than new columns).
-- Item notes, quantities, due dates (only promote to columns if queried/sorted).
+- Item notes, quantities (only promote to columns if queried/sorted). Due dates promoted to [Future Enhancements](#future-enhancements).
 - Archive vs delete; "clear completed" action.
 - Manual item order frozen in place per-list (checked items don't sink) — deferred opt-in, see ADR-0002.
 
@@ -96,6 +96,26 @@ both screens.
   open count specifically (`watchPinnedListSummaries()` on `ListsApi`) instead of
   only the global unchecked total. Deferred to keep this iteration's pin/order
   purely internal to Lists; revisit as its own small feature.
+
+- **Optional due date / "remind me" — on lists *and* items.** An optional `dueAt`
+  timestamp on a whole list ("Pack for trip" by Friday) *and* on individual items
+  ("call dentist" by Tuesday). Same nullable column on both tables, same UX
+  (a date/time picker on create/rename); they differ only in scope. Two layers,
+  separable — build the first, defer the second:
+  - *Display* — anything with a `dueAt` shows it and surfaces on the Brief as
+    due-soon/overdue. Pure Lists-internal: a nullable `dueAt` column on
+    `TrackedLists` **and** `ListItems` (additive, schema v3-or-later), each
+    queryable for sorting/filtering by due date. The Brief reads upcoming due
+    items/lists through a new `ListsApi` method (e.g. `watchUpcomingDue()`).
+  - *Reminder* — fire an OS notification when a `dueAt` arrives, even if the app
+    is dead. This is **not** a Lists concern: scheduling persistent notifications
+    belongs to the Clock module (`flutter_local_notifications`, `endsAt`
+    timestamps). Lists would request a reminder through a shared contract/event,
+    never by importing Clock (hard rule 1). Blocked on Clock existing; revisit
+    then.
+
+  Build `dueAt` storage + display (both scopes) first; reminders are a follow-on
+  once Clock lands.
 
 ## Changelog
 

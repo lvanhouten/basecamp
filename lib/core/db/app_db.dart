@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../../features/clock/data/clock_dao.dart';
 import '../../features/lists/data/lists_dao.dart';
 import 'converters.dart';
 import 'tables.dart';
@@ -10,7 +11,10 @@ part 'app_db.g.dart';
 /// The single Basecamp database. Tables are registered here, but the *queries*
 /// for each module live in that module's DAO (see [daos]) — so adding a module
 /// is "register its tables + DAO", not "edit a shared query file".
-@DriftDatabase(tables: [TrackedLists, ListItems, ModuleData], daos: [ListsDao])
+@DriftDatabase(
+  tables: [TrackedLists, ListItems, Timers, ModuleData, Alarms],
+  daos: [ListsDao, ClockDao],
+)
 class AppDb extends _$AppDb {
   AppDb() : super(driftDatabase(name: 'basecamp'));
 
@@ -18,7 +22,7 @@ class AppDb extends _$AppDb {
   AppDb.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,6 +61,16 @@ class AppDb extends _$AppDb {
                 ) WHERE rid = list_items.id
               )
             ''');
+          }
+          // v2 -> v3: Clock Timer persistence (04-timer-data). Additive only —
+          // a brand-new table, no existing rows touched.
+          if (from < 3) {
+            await m.createTable(timers);
+          }
+          // v3 -> v4: Clock Alarms persistence (07-alarm-data). Additive only —
+          // a brand-new table, no existing rows touched.
+          if (from < 4) {
+            await m.createTable(alarms);
           }
         },
         beforeOpen: (details) async {
