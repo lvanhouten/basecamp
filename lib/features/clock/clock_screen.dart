@@ -2,21 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
-import '../../core/widgets/app_drawer.dart';
 import 'alarms_pane.dart';
 import 'clock_tab.dart';
 import 'stopwatch_pane.dart';
 import 'timer_pane.dart';
 
 /// Clock — time tools grouped under one module: Alarms, a countdown Timer, and
-/// a Stopwatch, presented as three tabs. Carries the hub navigation drawer (the
-/// established module-screen shape).
+/// a Stopwatch, presented as three tabs. A **pushed module route** (ADR-0005):
+/// the back arrow is automatic, there is no navigation drawer.
 ///
-/// The active tab is shared hub state ([selectedClockTabProvider]): the Brief
-/// card writes it via the `entryTab` precedence on tap, and a manual switch here
-/// writes it back. Because the module is kept alive in the hub IndexedStack,
-/// that choice persists for the session — drawer-hop away and back lands on the
-/// same tab (ADR-0004).
+/// The active tab is shared state ([selectedClockTabProvider]): the entry tab is
+/// computed from live Drift state on module ENTRY (the `pushModule` precedence
+/// in `module_navigation.dart`, ADR-0004 — Stopwatch > Timer > Alarms) and
+/// written before this screen mounts, so the TabController seeds from it. A
+/// manual switch here writes it back, persisting within this pushed session.
+/// (Correcting ADR-0001's "kept alive in the IndexedStack" note: modules are no
+/// longer peers — landing is derived on entry, not remembered across a hop.)
 ///
 /// A [ConsumerStatefulWidget] rather than a bare ConsumerWidget because it owns
 /// a [TabController] and the resume-time [AppLifecycleListener] — both need
@@ -92,8 +93,9 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
 
   @override
   Widget build(BuildContext context) {
-    // When the Brief card (or any external write) changes the entry tab while
-    // this screen is alive in the IndexedStack, move the controller to match.
+    // If an external write changes the entry tab while this screen is alive,
+    // move the controller to match (the entry tab is normally set on push,
+    // before mount; this keeps a live-screen write in sync too).
     ref.listen<ClockTab>(selectedClockTabProvider, (_, next) {
       if (_tabs.index != next.index) {
         _tabs.animateTo(next.index);
@@ -101,7 +103,6 @@ class _ClockScreenState extends ConsumerState<ClockScreen>
     });
 
     return Scaffold(
-      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Clock'),
         bottom: TabBar(

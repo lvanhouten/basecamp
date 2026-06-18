@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
-import '../../core/widgets/app_drawer.dart';
 import 'data/apply_reorder.dart';
 import 'data/lists_dao.dart';
 import 'list_detail_screen.dart';
@@ -15,7 +14,6 @@ class ListsScreen extends ConsumerWidget {
     final listsAsync = ref.watch(listsProvider);
 
     return Scaffold(
-      drawer: const AppDrawer(),
       appBar: AppBar(title: const Text('Lists')),
       body: listsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

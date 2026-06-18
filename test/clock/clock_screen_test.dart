@@ -1,6 +1,5 @@
 import 'package:basecamp/core/db/app_db.dart';
 import 'package:basecamp/core/providers.dart';
-import 'package:basecamp/core/widgets/app_drawer.dart';
 import 'package:basecamp/features/clock/clock_screen.dart';
 import 'package:basecamp/features/clock/clock_tab.dart';
 import 'package:drift/native.dart';
@@ -25,7 +24,7 @@ void main() {
   }
 
   group('ClockScreen', () {
-    testWidgets('renders three tabs, the hub drawer, and lands on Alarms',
+    testWidgets('renders three tabs, no drawer, and lands on Alarms',
         (tester) async {
       final container = makeContainer();
 
@@ -37,14 +36,11 @@ void main() {
       );
       await tester.pump();
 
-      // Hub drawer present on the module root. The Scaffold builds its `drawer`
-      // lazily (only when opened), so assert the slot is wired rather than
-      // searching the live tree for the AppDrawer widget. The Alarms pane (now
-      // a real pane, 08-alarm-ui) nests its OWN Scaffold inside the body — like
-      // TimerPane — so scope to the ClockScreen's outer, drawer-bearing one
-      // (the first match, an ancestor of the TabBarView).
+      // ADR-0005: Clock is a pushed module route — no navigation drawer. Scope
+      // to the ClockScreen's outer Scaffold (the first match, an ancestor of
+      // the TabBarView; the Alarms pane nests its own inner Scaffold).
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
-      expect(scaffold.drawer, isA<AppDrawer>());
+      expect(scaffold.drawer, isNull);
 
       // Three tool tabs.
       expect(find.byType(Tab), findsNWidgets(3));

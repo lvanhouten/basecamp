@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/widgets/app_drawer.dart';
-
 /// Workout log — the "Strong" replacement. Starts as a history feed; the real
-/// build adds exercises, sets/reps/weight, and an active-session screen.
+/// build adds exercises, sets/reps/weight, and an active-session screen. A
+/// pushed module route (ADR-0005): back arrow is automatic, no drawer.
 class WorkoutsScreen extends StatelessWidget {
   const WorkoutsScreen({super.key});
 
@@ -11,7 +10,6 @@ class WorkoutsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      drawer: const AppDrawer(),
       appBar: AppBar(title: const Text('Workouts')),
       body: Center(
         child: Padding(
