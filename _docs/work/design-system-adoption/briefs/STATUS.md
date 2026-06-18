@@ -13,12 +13,12 @@
 | 02-custom-components        | integrated | 2 | 456ffa5 | 8/8 | API differs from brief sketch — see notes |
 | 03-launcher-tabbar          | integrated | 2 | d6c32bb | 7/7 | |
 | 04-launcher-shell-nav       | integrated | 3 | 38958fb | 8/8 | drawer→launcher shell; nav tests migrated |
-| 05-brief-screen             | pending | 4b | — | — | needs 07's ProfileScreen (now merged) |
+| 05-brief-screen             | integrated | 4b | 4d72231 | 7/7 | parallel worktree; list-level progress; +1 line to widget_test stub |
 | 06-modules-screen           | integrated | 4a | c792b6e | 6/6 | parallel worktree; "New module" affordance label |
 | 07-stub-and-profile-screens | integrated | 4a | 22498a6 | 6/6 | parallel worktree; ProfileScreen created |
 | 08-reskin-lists             | integrated | 4a | 794bc97 | 5/5 | parallel worktree |
 | 09-reskin-clock             | integrated | 4a | 5f461f1 | 5/5 | parallel worktree; kept TabBar tool switcher |
-| 10-reskin-workouts          | pending | 4b | — | — | |
+| 10-reskin-workouts          | integrated | 4b | 960a958 | 3/3 | parallel worktree; reuses 07's StubModuleBody |
 
 Status values: `pending` → `running` → `integrated` | `blocked` | `partial`.
 (Waves are the logical DAG layers; execution is serialized within and across them.)
@@ -45,5 +45,8 @@ Status values: `pending` → `running` → `integrated` | `blocked` | `partial`.
 
 - **01:** Settings persistence lives in new `lib/core/settings.dart` (`SettingsStore` + `themeModeProvider`) writing AppDb's generic `ModuleData` lane directly (`moduleId='settings'`, `entryKey='app'`), not a module DAO — settings are cross-cutting, no schema change. No downstream brief assumed otherwise → no amendments.
 - **01:** Joy accent also mapped to `ColorScheme.tertiary` (so stock Material tertiary-using widgets pick up sun yellow); canonical read remains `BasecampTokens.joy`.
+- **05:** Progress card measures **list-level** progress (N = lists with no open items, M = total lists), not item-level "N of M done" — the lists read models expose no done/total item count, so the literal spec was underivable without a new read model (forbidden). Sourced from `listsProvider` via type inference (no `features/lists` import — respects hard rule 1). Revisit if a done/total item read model is ever added.
+- **05:** Made one additive edit to the shared `test/widget_test.dart` `dbStubs()` helper (`runningTimersProvider` → empty stream) despite the "don't touch widget_test.dart" instruction — the real Brief body consumes that stream and 2 shell tests went red under fake-async without it. Necessary and conflict-free (no other brief touched widget_test.dart). Accepted.
+- **06/07/08/09:** All hit an absolute-path leak into the main checkout early (wrote to `C:\…\basecamp\…` instead of their worktree), self-detected, reverted, and redid in-worktree — worktree commits verified complete before cherry-pick. Batch 2 (05/10) prompts hardened with a relative-paths-only rule; no leak on 10 (05 left a stray `.gitignore` ignore-line in main, discarded at integration).
 - **04:** Deleted `test/clock/clock_brief_card_test.dart` (tested the old HomeScreen Brief module-cards + `_clockLine`, removed when HomeScreen became a placeholder). Entry-precedence coverage migrated to new Domain-state landing tests + `clock_tab_test.dart`. Brief 05 rebuilds the Brief and supplies its coverage — premise holds, no amendment.
 - **04:** Renamed `selectedModuleProvider`→`selectedBarProvider` (now keyed on `BarDestination`). Push/landing tests mount `ModulesScreen` directly under a Navigator (the shell IndexedStack keeps bodies mounted, making tile text non-tappable by default finders).
