@@ -2,16 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../core/tokens.dart';
+import '../../core/widgets/components.dart';
 import 'data/apply_reorder.dart';
 import 'data/lists_dao.dart';
 import 'list_detail_screen.dart';
 
+/// Lists overview — every tracked list as a grouped hairline row, pinned ones
+/// floated to a top section. A **pushed module route** (brief 04): it keeps its
+/// own Scaffold + AppBar and gets a back arrow automatically; there is no drawer.
+///
+/// Purely presentational over the read model — the partitioning, reorder scope,
+/// CRUD and undo behaviour are unchanged (ADR-0002 / handoff 01).
 class ListsScreen extends ConsumerWidget {
   const ListsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listsAsync = ref.watch(listsProvider);
+    final tokens = Theme.of(context).extension<BasecampTokens>()!;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Lists')),
@@ -20,9 +29,7 @@ class ListsScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (lists) {
           if (lists.isEmpty) {
-            return const Center(
-              child: Text('No lists yet — tap + to create one.'),
-            );
+            return const _EmptyState('No lists yet. Start one to keep track.');
           }
           // The read model already emits pinned-first then position-asc, so we
           // partition by walking it in order — never re-sort (handoff 01).
@@ -32,21 +39,29 @@ class ListsScreen extends ConsumerWidget {
           // Pinned rows + their header live in the ReorderableListView's header
           // slot, so they are NOT reorderable children: a drag can't cross the
           // pinned/unpinned boundary, and pinning stays the only way across.
+          // Each section is its own hairline-grouped surface (handoff 02).
           return ReorderableListView(
             buildDefaultDragHandles: false,
+            padding: EdgeInsets.all(tokens.spacing.gutter),
             header: pinned.isEmpty
                 ? null
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const _SectionHeader('Pinned'),
-                      for (final row in pinned)
-                        _ListRow(
-                          key: ValueKey('pinned-${row.list.id}'),
-                          row: row,
+                : Padding(
+                    padding: EdgeInsets.only(bottom: tokens.spacing.s6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const _SectionHeader('Pinned'),
+                        _ListGroupSurface(
+                          children: [
+                            for (final row in pinned)
+                              _ListRow(
+                                key: ValueKey('pinned-${row.list.id}'),
+                                row: row,
+                              ),
+                          ],
                         ),
-                      const Divider(height: 1),
-                    ],
+                      ],
+                    ),
                   ),
             // Uses the classic onReorder convention (raw oldIndex/newIndex):
             // applyReorder (brief 01) owns the move-down off-by-one, so we must
@@ -60,6 +75,10 @@ class ListsScreen extends ConsumerWidget {
               final reordered = applyReorder(ids, oldIndex, newIndex);
               ref.read(listsRepositoryProvider).reorderLists(reordered);
             },
+            // proxyDecorator keeps the dragged row on a clean raised surface
+            // (the default Material elevation tint would clash with the brand
+            // cards), with the design system's lg shadow.
+            proxyDecorator: (child, index, animation) => _DragProxy(child: child),
             children: [
               for (var i = 0; i < unpinned.length; i++)
                 _ListRow(
@@ -68,6 +87,10 @@ class ListsScreen extends ConsumerWidget {
                   key: ValueKey('list-${unpinned[i].list.id}'),
                   row: unpinned[i],
                   dragIndex: i,
+                  // Grouped surface treatment: rounded ends + hairlines between.
+                  isFirst: i == 0,
+                  isLast: i == unpinned.length - 1,
+                  grouped: true,
                 ),
             ],
           );
@@ -95,30 +118,50 @@ class ListsScreen extends ConsumerWidget {
 /// long-press opens the action menu. When [dragIndex] is non-null the row is a
 /// reorderable child and renders a drag handle; pinned rows omit it (they live
 /// in the header and are not reorderable).
+///
+/// [grouped] rows render the hairline-grouped surface treatment directly (the
+/// reorderable children can't be wrapped in a single container, so each carries
+/// its own surface + position-aware corner radii); pinned rows are wrapped by
+/// [_ListGroupSurface] instead and pass [grouped] false.
 class _ListRow extends ConsumerWidget {
-  const _ListRow({super.key, required this.row, this.dragIndex});
+  const _ListRow({
+    super.key,
+    required this.row,
+    this.dragIndex,
+    this.grouped = false,
+    this.isFirst = false,
+    this.isLast = false,
+  });
 
   final TrackedListWithCount row;
   final int? dragIndex;
+  final bool grouped;
+  final bool isFirst;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tile = ListTile(
-      leading: row.list.pinned
-          ? const Icon(Icons.push_pin)
-          : const Icon(Icons.checklist),
-      title: Text(row.list.name),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final tokens = theme.extension<BasecampTokens>()!;
+
+    final item = BcListItem(
+      leading: BcListItemIcon(
+        row.list.pinned ? Icons.push_pin : Icons.checklist,
+      ),
+      title: row.list.name,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Chip(label: Text('${row.openCount}')),
+          // Tabular-figure count of open items (handoff 01 / 02).
+          BcBadge(label: '${row.openCount}'),
           if (dragIndex != null) ...[
-            const SizedBox(width: 8),
+            SizedBox(width: tokens.spacing.s3),
             // Explicit drag handle: only this widget starts a reorder, so the
             // row's own swipe (Dismissible) and long-press gestures are free.
             ReorderableDragStartListener(
               index: dragIndex!,
-              child: const Icon(Icons.drag_handle),
+              child: Icon(Icons.drag_handle, color: scheme.onSurfaceVariant),
             ),
           ],
         ],
@@ -131,20 +174,46 @@ class _ListRow extends ConsumerWidget {
           ),
         ),
       ),
-      onLongPress: () => _showActions(context, ref),
     );
+
+    // Long-press isn't a BcListItem affordance, so it's layered on with a
+    // GestureDetector wrapping the tappable row.
+    final row0 = GestureDetector(
+      onLongPress: () => _showActions(context, ref),
+      child: item,
+    );
+
+    // For grouped reorderable children, each row is its own surface with
+    // position-aware corner radii and a hairline below all but the last row, so
+    // the section reads as one grouped card (matching BcListGroup) even though
+    // ReorderableListView requires flat siblings.
+    final content = grouped
+        ? DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(isFirst ? tokens.radii.lg : 0),
+                bottom: Radius.circular(isLast ? tokens.radii.lg : 0),
+              ),
+              border: Border(
+                left: BorderSide(color: scheme.outlineVariant),
+                right: BorderSide(color: scheme.outlineVariant),
+                top: BorderSide(color: scheme.outlineVariant),
+                bottom: isLast
+                    ? BorderSide(color: scheme.outlineVariant)
+                    : BorderSide(color: scheme.outlineVariant, width: 0.5),
+              ),
+            ),
+            child: row0,
+          )
+        : row0;
 
     return Dismissible(
       key: ValueKey('dismiss-${row.list.id}'),
       direction: DismissDirection.endToStart,
-      background: Container(
-        color: Theme.of(context).colorScheme.errorContainer,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        child: const Icon(Icons.delete),
-      ),
+      background: _DismissBackground(scheme: scheme, tokens: tokens),
       onDismissed: (_) => _deleteWithUndo(context, ref),
-      child: tile,
+      child: content,
     );
   }
 
@@ -224,6 +293,93 @@ class _ListRow extends ConsumerWidget {
 
 enum _ListAction { togglePin, rename, delete }
 
+/// Wraps the pinned section's rows in a single hairline-grouped surface, mirroring
+/// [BcListGroup] (handoff 02). Used only for the non-reorderable pinned block;
+/// the unpinned reorderable children render their own per-row surface instead.
+class _ListGroupSurface extends StatelessWidget {
+  const _ListGroupSurface({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final tokens = theme.extension<BasecampTokens>()!;
+
+    final rows = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      if (i > 0) {
+        rows.add(Divider(
+          height: 1,
+          thickness: 1,
+          color: scheme.outlineVariant,
+          indent: tokens.spacing.s5,
+          endIndent: 0,
+        ));
+      }
+      rows.add(children[i]);
+    }
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(tokens.radii.lg),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+    );
+  }
+}
+
+/// The red swipe-to-delete affordance behind a [Dismissible] row, in the design
+/// system's danger tint with a soft radius.
+class _DismissBackground extends StatelessWidget {
+  const _DismissBackground({required this.scheme, required this.tokens});
+
+  final ColorScheme scheme;
+  final BasecampTokens tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.errorContainer,
+        borderRadius: BorderRadius.circular(tokens.radii.lg),
+      ),
+      alignment: Alignment.centerRight,
+      padding: EdgeInsets.only(right: tokens.spacing.s7),
+      child: Icon(Icons.delete, color: scheme.onErrorContainer),
+    );
+  }
+}
+
+/// Raised surface for the row currently being dragged in a ReorderableListView,
+/// using the design system's lg shadow instead of Material's elevation tint.
+class _DragProxy extends StatelessWidget {
+  const _DragProxy({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<BasecampTokens>()!;
+    return Material(
+      color: Colors.transparent,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(tokens.radii.lg),
+          boxShadow: tokens.shadows.lg,
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader(this.label);
 
@@ -232,12 +388,41 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<BasecampTokens>()!;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: EdgeInsets.only(
+        left: tokens.spacing.s2,
+        bottom: tokens.spacing.s3,
+      ),
       child: Text(
         label,
         style: theme.textTheme.labelLarge
-            ?.copyWith(color: theme.colorScheme.primary),
+            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
+    );
+  }
+}
+
+/// A single calm brand-voice line for an empty surface — sentence case,
+/// emoji-free, centred.
+class _EmptyState extends StatelessWidget {
+  const _EmptyState(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<BasecampTokens>()!;
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(tokens.spacing.s8),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyLarge
+              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
       ),
     );
   }
