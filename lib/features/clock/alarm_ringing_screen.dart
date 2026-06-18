@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/app_db.dart';
 import '../../core/providers.dart';
+import '../../core/theme.dart';
+import '../../core/tokens.dart';
 import 'alarm_format.dart' as fmt;
 import 'data/chime_player.dart';
 
@@ -115,33 +117,51 @@ class _AlarmRingingScreenState extends ConsumerState<AlarmRingingScreen> {
     final timeText =
         alarm != null ? fmt.formatTimeOfDay(context, alarm.timeOfDayMinutes) : null;
 
+    final scheme = theme.colorScheme;
+    final tokens = theme.extension<BasecampTokens>()!;
+
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: scheme.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          padding: EdgeInsets.symmetric(
+            horizontal: tokens.spacing.s7,
+            vertical: tokens.spacing.s8,
+          ),
           child: Column(
             children: [
               const Spacer(),
-              Icon(
-                Icons.alarm,
-                size: 72,
-                color: theme.colorScheme.primary,
+              // A soft brand-tinted ring behind the bell.
+              Container(
+                width: 112,
+                height: 112,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.alarm,
+                  size: 56,
+                  color: scheme.primary,
+                ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: tokens.spacing.s7),
               if (timeText != null)
                 Text(
                   timeText,
                   key: const ValueKey('ringing-time'),
-                  style: theme.textTheme.displayMedium?.copyWith(
-                    fontWeight: FontWeight.w300,
+                  style: numericTextStyle(
+                    fontSize: 64,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
                   ),
                 ),
-              const SizedBox(height: 8),
+              SizedBox(height: tokens.spacing.s3),
               Text(
                 label ?? 'Alarm',
                 key: const ValueKey('ringing-label'),
-                style: theme.textTheme.headlineSmall,
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(color: scheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
               const Spacer(),
@@ -158,7 +178,7 @@ class _AlarmRingingScreenState extends ConsumerState<AlarmRingingScreen> {
                   child: const Text('Snooze 9 min'),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: tokens.spacing.s4),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(

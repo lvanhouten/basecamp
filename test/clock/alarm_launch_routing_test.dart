@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:basecamp/core/providers.dart';
+import 'package:basecamp/core/theme.dart';
 import 'package:basecamp/features/clock/alarm_launch_host.dart';
 import 'package:basecamp/features/clock/alarm_ringing_screen.dart';
 import 'package:basecamp/features/clock/data/alarm_launch_router.dart';
@@ -64,8 +65,9 @@ void main() {
             // falls back to a generic ring, which is all this routing test needs).
             alarmsProvider.overrideWith((ref) => const Stream.empty()),
           ],
-          child: const MaterialApp(
-            home: AlarmLaunchHost(
+          child: MaterialApp(
+            theme: basecampTheme(Brightness.light),
+            home: const AlarmLaunchHost(
               child: Scaffold(body: Center(child: Text('hub'))),
             ),
           ),

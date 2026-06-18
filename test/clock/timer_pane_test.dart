@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:basecamp/core/db/app_db.dart';
 import 'package:basecamp/core/providers.dart';
+import 'package:basecamp/core/theme.dart';
 import 'package:basecamp/features/clock/clock_math.dart' as clock_math;
 import 'package:basecamp/features/clock/data/clock_repository.dart';
 import 'package:basecamp/features/clock/data/notification_scheduler.dart';
@@ -97,7 +98,10 @@ void main() {
           runningTimersProvider
               .overrideWith((ref) => repo.watchRunningTimers()),
         ],
-        child: const MaterialApp(home: TimerPane()),
+        child: MaterialApp(
+          theme: basecampTheme(Brightness.light),
+          home: const TimerPane(),
+        ),
       ),
     );
     await tester.pump(); // loading frame before the stream emits

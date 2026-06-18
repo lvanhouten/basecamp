@@ -1,5 +1,6 @@
 import 'package:basecamp/core/db/app_db.dart';
 import 'package:basecamp/core/providers.dart';
+import 'package:basecamp/core/theme.dart';
 import 'package:basecamp/features/clock/clock_screen.dart';
 import 'package:basecamp/features/clock/clock_tab.dart';
 import 'package:drift/native.dart';
@@ -31,7 +32,10 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(home: ClockScreen()),
+          child: MaterialApp(
+            theme: basecampTheme(Brightness.light),
+            home: const ClockScreen(),
+          ),
         ),
       );
       await tester.pump();
@@ -64,7 +68,10 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(home: ClockScreen()),
+          child: MaterialApp(
+            theme: basecampTheme(Brightness.light),
+            home: const ClockScreen(),
+          ),
         ),
       );
       await tester.pump();
@@ -80,7 +87,10 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(home: ClockScreen()),
+          child: MaterialApp(
+            theme: basecampTheme(Brightness.light),
+            home: const ClockScreen(),
+          ),
         ),
       );
       await tester.pump();
@@ -98,7 +108,10 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(home: ClockScreen()),
+          child: MaterialApp(
+            theme: basecampTheme(Brightness.light),
+            home: const ClockScreen(),
+          ),
         ),
       );
       await tester.pump();

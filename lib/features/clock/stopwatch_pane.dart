@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme.dart';
+import '../../core/tokens.dart';
 import '../../core/providers.dart';
 import 'data/stopwatch_state.dart';
 
 /// The single Stopwatch tool — start / pause / lap / reset over a large
-/// monospace elapsed readout and an ordered lap list.
+/// tabular-numeric elapsed readout and an ordered lap list.
 ///
 /// The persisted [StopwatchState] (a `ModuleData` record) is the SOURCE OF
 /// TRUTH; this pane never holds the elapsed value itself. It runs an in-memory
@@ -73,6 +75,10 @@ class StopwatchPaneState extends ConsumerState<StopwatchPane>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final tokens = theme.extension<BasecampTokens>()!;
+
     final state = ref.watch(stopwatchStateProvider).asData?.value ??
         StopwatchState.idle;
     _syncTicker(state.isRunning);
@@ -80,76 +86,112 @@ class StopwatchPaneState extends ConsumerState<StopwatchPane>
     final repo = ref.read(clockRepositoryProvider);
     final elapsed = state.elapsedAt(_now);
     final hasElapsed = elapsed > Duration.zero || state.laps.isNotEmpty;
+    // Sub-caption mirrors the design reference: "Running" while live, else
+    // "Stopwatch" at rest. Sentence case, encouraging, emoji-free.
+    final subLabel = state.isRunning ? 'Running' : 'Stopwatch';
 
-    return Column(
-      children: [
-        const SizedBox(height: 24),
-        Text(
-          _format(elapsed),
-          style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-                fontWeight: FontWeight.w300,
-              ),
-        ),
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Lap while running; doubles as Reset when stopped & there's data.
-            if (state.isRunning)
-              _RoundButton(
-                key: const ValueKey('lap'),
-                label: 'Lap',
-                onPressed: () => repo.lapStopwatch(),
-              )
-            else
-              _RoundButton(
-                key: const ValueKey('reset'),
-                label: 'Reset',
-                onPressed: hasElapsed ? () => repo.resetStopwatch() : null,
-              ),
-            const SizedBox(width: 48),
-            if (state.isRunning)
-              _RoundButton(
-                key: const ValueKey('pause'),
-                label: 'Pause',
-                filled: true,
-                onPressed: () => repo.pauseStopwatch(),
-              )
-            else
-              _RoundButton(
-                key: const ValueKey('start'),
-                label: 'Start',
-                filled: true,
-                onPressed: () => repo.startStopwatch(),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        const Divider(height: 1),
-        Expanded(
-          child: state.laps.isEmpty
-              ? const SizedBox.shrink()
-              : ListView.builder(
-                  // Newest lap on top; the label keeps the original 1-based tap
-                  // order so the list reads "Lap N … Lap 1" top-to-bottom.
-                  reverse: true,
-                  itemCount: state.laps.length,
-                  itemBuilder: (context, i) {
-                    return ListTile(
-                      dense: true,
-                      title: Text('Lap ${i + 1}'),
-                      trailing: Text(
-                        _format(state.laps[i]),
-                        style: const TextStyle(
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    );
-                  },
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: tokens.spacing.gutter),
+      child: Column(
+        children: [
+          SizedBox(height: tokens.spacing.s9),
+          // The large tabular-numeric readout — digits hold their column.
+          Text(
+            _format(elapsed),
+            style: numericTextStyle(
+              fontSize: 56,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+          SizedBox(height: tokens.spacing.s2),
+          Text(
+            subLabel,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          SizedBox(height: tokens.spacing.s7),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Lap while running; doubles as Reset when stopped & there's data.
+              if (state.isRunning)
+                _RoundButton(
+                  key: const ValueKey('lap'),
+                  label: 'Lap',
+                  onPressed: () => repo.lapStopwatch(),
+                )
+              else
+                _RoundButton(
+                  key: const ValueKey('reset'),
+                  label: 'Reset',
+                  onPressed: hasElapsed ? () => repo.resetStopwatch() : null,
                 ),
-        ),
-      ],
+              SizedBox(width: tokens.spacing.s10),
+              if (state.isRunning)
+                _RoundButton(
+                  key: const ValueKey('pause'),
+                  label: 'Pause',
+                  filled: true,
+                  onPressed: () => repo.pauseStopwatch(),
+                )
+              else
+                _RoundButton(
+                  key: const ValueKey('start'),
+                  label: 'Start',
+                  filled: true,
+                  onPressed: () => repo.startStopwatch(),
+                ),
+            ],
+          ),
+          SizedBox(height: tokens.spacing.s7),
+          Expanded(
+            child: state.laps.isEmpty
+                ? const SizedBox.shrink()
+                // The lap list reads as one grouped card with hairline-separated
+                // rows, matching the design reference's outlined Card of rows.
+                : Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(tokens.radii.lg),
+                      border: Border.all(color: scheme.outlineVariant),
+                    ),
+                    child: ListView.separated(
+                      // Newest lap on top; the label keeps the original 1-based
+                      // tap order so the list reads "Lap N … Lap 1" top-to-bottom.
+                      reverse: true,
+                      itemCount: state.laps.length,
+                      separatorBuilder: (context, index) => Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: scheme.outlineVariant,
+                        indent: tokens.spacing.s5,
+                        endIndent: tokens.spacing.s5,
+                      ),
+                      itemBuilder: (context, i) {
+                        return ListTile(
+                          dense: true,
+                          title: Text(
+                            'Lap ${i + 1}',
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          trailing: Text(
+                            _format(state.laps[i]),
+                            style: numericTextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

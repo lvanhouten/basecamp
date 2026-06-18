@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/app_db.dart';
 import '../../core/providers.dart';
+import '../../core/theme.dart';
+import '../../core/tokens.dart';
 import 'clock_math.dart' as clock_math;
+import 'clock_notice.dart';
 
 /// The countdown Timer tool — create one or more timers (a duration + optional
 /// label), watch them count down concurrently, and pause / resume / cancel each.
@@ -116,12 +119,7 @@ class TimerPaneState extends ConsumerState<TimerPane>
             const _SilentTimersWarning(),
           Expanded(
             child: timers.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No timers running',
-                      key: ValueKey('timer-empty'),
-                    ),
-                  )
+                ? const _TimersEmpty()
                 : ListView.builder(
                     padding: const EdgeInsets.only(bottom: 88),
                     itemCount: timers.length,
@@ -196,21 +194,21 @@ class _TimerTile extends StatelessWidget {
         ? timer.label!
         : null;
 
+    final scheme = theme.colorScheme;
     final Widget primary;
     if (finished) {
       primary = Text(
         "Time's up",
         key: const ValueKey('finished-label'),
-        style: theme.textTheme.headlineSmall
-            ?.copyWith(color: theme.colorScheme.error),
+        style: theme.textTheme.titleLarge?.copyWith(color: scheme.error),
       );
     } else {
       primary = Text(
         _format(_remaining),
-        style: theme.textTheme.headlineMedium?.copyWith(
-          fontFeatures: const [FontFeature.tabularFigures()],
-          fontWeight: FontWeight.w300,
-          color: _paused ? theme.colorScheme.onSurfaceVariant : null,
+        style: numericTextStyle(
+          fontSize: 30,
+          fontWeight: FontWeight.w700,
+          color: _paused ? scheme.onSurfaceVariant : scheme.onSurface,
         ),
       );
     }
@@ -271,6 +269,41 @@ class _TimerTile extends StatelessWidget {
   }
 }
 
+/// The empty state — no timers running. A calm, encouraging line in the brand
+/// voice (sentence case, emoji-free).
+class _TimersEmpty extends StatelessWidget {
+  const _TimersEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final tokens = theme.extension<BasecampTokens>()!;
+    return Center(
+      child: Column(
+        key: const ValueKey('timer-empty'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.hourglass_empty,
+              size: 40, color: scheme.onSurfaceVariant),
+          SizedBox(height: tokens.spacing.s4),
+          Text(
+            'No timers running',
+            style: theme.textTheme.titleSmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          SizedBox(height: tokens.spacing.s1),
+          Text(
+            'Tap the button below to start one.',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// One-time in-app notice shown when the user has denied notification
 /// permission: the timer still runs, but no OS alert will fire when it ends.
 class _SilentTimersWarning extends StatelessWidget {
@@ -278,27 +311,9 @@ class _SilentTimersWarning extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Icon(Icons.notifications_off,
-                color: theme.colorScheme.onErrorContainer, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Notifications are off — timers will finish silently.',
-                key: const ValueKey('silent-warning'),
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onErrorContainer),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return const ClockSilentNotice(
+      messageKey: ValueKey('silent-warning'),
+      message: 'Notifications are off — timers will finish silently.',
     );
   }
 }
@@ -393,7 +408,6 @@ class _CreateTimerSheetState extends State<_CreateTimerSheet> {
             textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
               labelText: 'Label (optional)',
-              border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
@@ -431,7 +445,6 @@ class _UnitField extends StatelessWidget {
       textAlign: TextAlign.center,
       decoration: InputDecoration(
         labelText: label,
-        border: const OutlineInputBorder(),
       ),
       onChanged: (raw) {
         final parsed = int.tryParse(raw.trim()) ?? 0;
