@@ -5,6 +5,7 @@ library;
 
 export 'badge.dart';
 export 'bc_list_item.dart';
+export 'launcher_tab_bar.dart';
 export 'progress_ring.dart';
 export 'segmented_control.dart';
 export 'stat.dart';
