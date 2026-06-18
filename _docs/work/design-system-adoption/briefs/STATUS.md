@@ -13,12 +13,12 @@
 | 02-custom-components        | integrated | 2 | 456ffa5 | 8/8 | API differs from brief sketch — see notes |
 | 03-launcher-tabbar          | integrated | 2 | d6c32bb | 7/7 | |
 | 04-launcher-shell-nav       | integrated | 3 | 38958fb | 8/8 | drawer→launcher shell; nav tests migrated |
-| 05-brief-screen             | pending | 4 | — | — | |
-| 06-modules-screen           | pending | 4 | — | — | |
-| 07-stub-and-profile-screens | pending | 4 | — | — | |
-| 08-reskin-lists             | pending | 4 | — | — | |
-| 09-reskin-clock             | pending | 4 | — | — | |
-| 10-reskin-workouts          | pending | 4 | — | — | |
+| 05-brief-screen             | pending | 4b | — | — | needs 07's ProfileScreen (now merged) |
+| 06-modules-screen           | integrated | 4a | c792b6e | 6/6 | parallel worktree; "New module" affordance label |
+| 07-stub-and-profile-screens | integrated | 4a | 22498a6 | 6/6 | parallel worktree; ProfileScreen created |
+| 08-reskin-lists             | integrated | 4a | 794bc97 | 5/5 | parallel worktree |
+| 09-reskin-clock             | integrated | 4a | 5f461f1 | 5/5 | parallel worktree; kept TabBar tool switcher |
+| 10-reskin-workouts          | pending | 4b | — | — | |
 
 Status values: `pending` → `running` → `integrated` | `blocked` | `partial`.
 (Waves are the logical DAG layers; execution is serialized within and across them.)
@@ -36,6 +36,9 @@ Status values: `pending` → `running` → `integrated` | `blocked` | `partial`.
 - **04 → [05, 06]:** `pushModule` reads clock count providers synchronously (`ref.read(...).asData?.value`); they resolve to resting default (Alarms) unless WARM. Keep `stopwatchRunningProvider`/`runningTimerCountProvider`/`todaysAlarmCountProvider` warm via `ref.watch(...)` in the Modules grid (and Brief if it launches Clock), else entry-landing falls back to Alarms. (constraint)
 - **04 → [08, 09, 10]:** Module screens (Clock/Lists/Workouts/Goals/Journal) are now PUSHED routes with their own Scaffold+AppBar + automatic back arrow; `drawer:` removed. Do NOT re-add a drawer or hub AppBar. (constraint)
 - **04 → [05, 07]:** `ProfileScreen` does NOT exist yet (not a bar destination, no 04 placeholder). 07 creates it; 05's avatar navigates to it. Orchestrator merges 07 before spawning 05. `BarDestinationPlaceholder` (`lib/core/widgets/bar_destination_placeholder.dart`, not in components barrel) backs Calendar/Activity/Brief placeholders; 07 drops it when replacing those screens. (gotcha)
+- **07 → [05]:** `ProfileScreen` lives at `lib/features/profile/profile_screen.dart` — a `ConsumerWidget`, `const ProfileScreen()`, brings its own `Scaffold`+`AppBar`/back. 05 wires the Brief avatar to it via `Navigator.push(MaterialPageRoute(builder: (_) => const ProfileScreen()))`. Do NOT wrap it in another Scaffold. (contract-change)
+- **09 → [05, 10]:** Reskinned widgets read the `BasecampTokens` theme extension (`theme.extension<BasecampTokens>()!`), so any widget test pumping them in a **bare `MaterialApp` (no theme) throws a null-check**. Pump with `basecampTheme(Brightness.light)` applied. (gotcha — applies to every reskin/screen test)
+- **06 → [future add-flow]:** The "add a module" affordance tile is labelled **"New module"** (section header is "Add a module"); snackbar "Add a module — coming soon". ModulesScreen uses a non-lazy Column so all 5 tiles lay out at once (a lazy list clipped Journal off-screen and broke the shared push test) — keep all tiles laid out if restyling. (constraint)
 - **03 → [04]:** Widget is `LauncherTabBar<T>` (generic). `items: List<LauncherTabItem<T>>` (`LauncherTabItem(value:T, label:String, icon:IconData)`), `value: T`, `onChange: ValueChanged<T>`, optional `centerAction: LauncherCenterAction(icon:IconData, label:String, onClick:VoidCallback)`. The center action has **no `value`** — cannot collide with a destination. It already wraps itself in `SafeArea(top:false)` — do NOT double-wrap. Place in `Scaffold.bottomNavigationBar`. Import via `package:basecamp/core/widgets/components.dart`. (contract-change)
 
 ## Deviations
