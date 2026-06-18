@@ -1,0 +1,25 @@
+/* basecamp — elevation
+ * Soft, low, navy-tinted shadows. Calm, never harsh. Plus focus ring.
+ */
+:root {
+  --shadow-xs: 0 1px 2px rgba(27, 31, 38, 0.06);
+  --shadow-sm: 0 1px 3px rgba(27, 31, 38, 0.07), 0 1px 2px rgba(27, 31, 38, 0.05);
+  --shadow-md: 0 4px 12px rgba(27, 31, 38, 0.08), 0 1px 3px rgba(27, 31, 38, 0.05);
+  --shadow-lg: 0 12px 28px rgba(27, 31, 38, 0.12), 0 4px 10px rgba(27, 31, 38, 0.06);
+  --shadow-xl: 0 24px 56px rgba(27, 31, 38, 0.18), 0 8px 20px rgba(27, 31, 38, 0.08);
+
+  /* Focus ring — brand-tinted, 3px halo */
+  --ring: 0 0 0 3px var(--brand-border);
+  --ring-danger: 0 0 0 3px rgba(207, 91, 82, 0.34);
+
+  /* Backdrop blur for sheets / sticky bars over content */
+  --blur: saturate(120%) blur(16px); /* @kind other */
+}
+
+[data-theme="dark"] {
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.50), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.40);
+  --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.62), 0 8px 20px rgba(0, 0, 0, 0.45);
+}

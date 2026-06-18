@@ -1,0 +1,61 @@
+/* basecamp — typography
+ * Families, a mobile-first type scale, weights, line-heights, tracking.
+ * Pair: Hanken Grotesk (everything, including numerics via tabular figures).
+ * Numerics use --font-numeric (the brand sans); --font-mono is the system monospace,
+ * used only for code / token-name labels in documentation.
+ */
+
+:root {
+  /* Families */
+  --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Numerics (timers, stopwatch, stats, durations): the brand sans with tabular lining
+     figures (apply font-variant-numeric: tabular-nums). Round zero, no slash — reads clean
+     on a clock, and keeps the system to a single typeface. */
+  --font-numeric: var(--font-sans);
+  /* System monospace — for code / token-name labels in docs only, never product numerics. */
+  --font-mono: ui-monospace, monospace;
+
+  /* Weights */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-extra:    800;
+
+  /* Type scale (mobile-first, px) */
+  --text-2xs: 11px;
+  --text-xs:  12px;
+  --text-sm:  13px;
+  --text-base:15px;   /* default body */
+  --text-md:  17px;
+  --text-lg:  20px;
+  --text-xl:  24px;
+  --text-2xl: 30px;
+  --text-3xl: 38px;
+  --text-4xl: 48px;
+  --text-5xl: 64px;   /* full-screen timer */
+
+  /* Line heights */
+  --leading-none:    1;
+  --leading-tight:   1.12;
+  --leading-snug:    1.28;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  /* Letter spacing */
+  --tracking-tight:  -0.02em;   /* large display */
+  --tracking-snug:   -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;     /* small caps / eyebrow labels */
+  --tracking-caps:   0.08em;
+
+  /* ---- Semantic text roles (shorthand: weight | size / line-height | tracking) ---- */
+  --type-display: var(--weight-extra)    var(--text-3xl) / var(--leading-tight)  var(--font-sans);
+  --type-title:   var(--weight-bold)     var(--text-2xl) / var(--leading-tight)  var(--font-sans);
+  --type-heading: var(--weight-bold)     var(--text-lg)  / var(--leading-snug)   var(--font-sans);
+  --type-subhead: var(--weight-semibold) var(--text-md)  / var(--leading-snug)   var(--font-sans);
+  --type-body:    var(--weight-regular)  var(--text-base)/ var(--leading-normal) var(--font-sans);
+  --type-label:   var(--weight-semibold) var(--text-sm)  / var(--leading-snug)   var(--font-sans);
+  --type-caption: var(--weight-medium)   var(--text-xs)  / var(--leading-snug)   var(--font-sans);
+  --type-mono:    var(--weight-regular)  var(--text-base)/ var(--leading-normal) var(--font-mono);
+}

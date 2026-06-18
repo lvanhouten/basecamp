@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/app_db.dart';
 import '../../core/providers.dart';
+import '../../core/theme.dart';
+import '../../core/tokens.dart';
 import 'alarm_format.dart' as fmt;
+import 'clock_notice.dart';
 import 'data/alarm_recurrence.dart' as recur;
 
 /// The Alarms tool (08-alarm-ui) — index 0 of the ClockScreen tabs. Lists every
@@ -24,6 +27,10 @@ class AlarmsPane extends ConsumerWidget {
         ref.watch(alarmsProvider).asData?.value ?? const <AlarmRow>[];
     final repo = ref.watch(clockRepositoryProvider);
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final tokens = theme.extension<BasecampTokens>()!;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
@@ -31,25 +38,51 @@ class AlarmsPane extends ConsumerWidget {
           if (!repo.notificationsAllowed) const _SilentAlarmsWarning(),
           Expanded(
             child: alarms.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No alarms set',
-                      key: ValueKey('alarms-empty'),
+                ? const _AlarmsEmpty()
+                : ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      tokens.spacing.gutter,
+                      tokens.spacing.s5,
+                      tokens.spacing.gutter,
+                      88,
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 88),
-                    itemCount: alarms.length,
-                    itemBuilder: (context, i) {
-                      final a = alarms[i];
-                      return _AlarmTile(
-                        key: ValueKey('alarm-${a.id}'),
-                        alarm: a,
-                        onToggle: (on) => repo.setAlarmEnabled(a.id, on),
-                        onEdit: () => _showEditor(context, ref, existing: a),
-                        onDelete: () => repo.deleteAlarm(a.id),
-                      );
-                    },
+                    children: [
+                      // One grouped card, rows separated by a single hairline —
+                      // the design reference's outlined Card of ListItems.
+                      Container(
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerLowest,
+                          borderRadius:
+                              BorderRadius.circular(tokens.radii.lg),
+                          border: Border.all(color: scheme.outlineVariant),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (var i = 0; i < alarms.length; i++) ...[
+                              if (i > 0)
+                                Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: scheme.outlineVariant,
+                                  indent: tokens.spacing.s5,
+                                  endIndent: tokens.spacing.s5,
+                                ),
+                              _AlarmTile(
+                                key: ValueKey('alarm-${alarms[i].id}'),
+                                alarm: alarms[i],
+                                onToggle: (on) =>
+                                    repo.setAlarmEnabled(alarms[i].id, on),
+                                onEdit: () => _showEditor(context, ref,
+                                    existing: alarms[i]),
+                                onDelete: () => repo.deleteAlarm(alarms[i].id),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
           ),
         ],
@@ -121,42 +154,99 @@ class _AlarmTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final tokens = theme.extension<BasecampTokens>()!;
     final label = (alarm.label != null && alarm.label!.isNotEmpty)
         ? alarm.label!
         : null;
-    // Time dims when disabled so the on/off state reads at a glance.
+    // Time + subtitle dim when disabled so the on/off state reads at a glance.
     final timeColor =
-        alarm.enabled ? null : theme.colorScheme.onSurfaceVariant;
+        alarm.enabled ? scheme.onSurface : scheme.onSurfaceVariant;
+    final subtitle = [
+      ?label,
+      fmt.repeatSummary(alarm.repeatDays),
+    ].join(' • ');
 
-    return ListTile(
+    return InkWell(
       onTap: onEdit,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      title: Text(
-        fmt.formatTimeOfDay(context, alarm.timeOfDayMinutes),
-        style: theme.textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.w300,
-          color: timeColor,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: tokens.spacing.s5,
+          vertical: tokens.spacing.s4,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // The alarm time in the brand sans with tabular figures.
+                  Text(
+                    fmt.formatTimeOfDay(context, alarm.timeOfDayMinutes),
+                    style: numericTextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: timeColor,
+                    ),
+                  ),
+                  SizedBox(height: tokens.spacing.s1),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: tokens.spacing.s2),
+            IconButton(
+              key: ValueKey('delete-alarm-${alarm.id}'),
+              tooltip: 'Delete',
+              icon: const Icon(Icons.delete_outline),
+              color: scheme.onSurfaceVariant,
+              onPressed: onDelete,
+            ),
+            Switch(
+              key: ValueKey('toggle-alarm-${alarm.id}'),
+              value: alarm.enabled,
+              onChanged: onToggle,
+            ),
+          ],
         ),
       ),
-      subtitle: Text(
-        [
-          ?label,
-          fmt.repeatSummary(alarm.repeatDays),
-        ].join(' • '),
-      ),
-      trailing: Row(
+    );
+  }
+}
+
+/// The empty state — no alarms set. Calm, encouraging brand voice.
+class _AlarmsEmpty extends StatelessWidget {
+  const _AlarmsEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final tokens = theme.extension<BasecampTokens>()!;
+    return Center(
+      child: Column(
+        key: const ValueKey('alarms-empty'),
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            key: ValueKey('delete-alarm-${alarm.id}'),
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: onDelete,
+          Icon(Icons.alarm, size: 40, color: scheme.onSurfaceVariant),
+          SizedBox(height: tokens.spacing.s4),
+          Text(
+            'No alarms set',
+            style: theme.textTheme.titleSmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
-          Switch(
-            key: ValueKey('toggle-alarm-${alarm.id}'),
-            value: alarm.enabled,
-            onChanged: onToggle,
+          SizedBox(height: tokens.spacing.s1),
+          Text(
+            'Tap the button below to add one.',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -171,27 +261,9 @@ class _SilentAlarmsWarning extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Icon(Icons.notifications_off,
-                color: theme.colorScheme.onErrorContainer, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Notifications are off — alarms will be silent.',
-                key: const ValueKey('alarms-silent-warning'),
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onErrorContainer),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return const ClockSilentNotice(
+      messageKey: ValueKey('alarms-silent-warning'),
+      message: 'Notifications are off — alarms will be silent.',
     );
   }
 }
@@ -291,7 +363,7 @@ class _AlarmEditorSheetState extends State<_AlarmEditorSheet> {
             style: theme.textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
-          // Big tappable time.
+          // Big tappable time in the brand sans with tabular figures.
           InkWell(
             key: const ValueKey('pick-time'),
             onTap: _pickTime,
@@ -300,8 +372,11 @@ class _AlarmEditorSheetState extends State<_AlarmEditorSheet> {
               child: Text(
                 timeText,
                 key: const ValueKey('editor-time'),
-                style: theme.textTheme.displaySmall
-                    ?.copyWith(fontWeight: FontWeight.w300),
+                style: numericTextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
             ),
           ),
@@ -351,7 +426,6 @@ class _AlarmEditorSheetState extends State<_AlarmEditorSheet> {
             textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
               labelText: 'Label (optional)',
-              border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),

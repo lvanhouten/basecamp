@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:basecamp/core/db/app_db.dart';
 import 'package:basecamp/core/events/event_bus.dart';
 import 'package:basecamp/core/providers.dart';
+import 'package:basecamp/core/theme.dart';
 import 'package:basecamp/features/lists/data/lists_repository.dart';
 import 'package:basecamp/features/lists/list_detail_screen.dart';
 import 'package:drift/native.dart';
@@ -108,8 +109,11 @@ void main() {
         overrides: [
           listsRepositoryProvider.overrideWithValue(repo),
         ],
-        child: const MaterialApp(
-          home: ListDetailScreen(listId: 1, title: 'Groceries'),
+        // The reskinned screen reads BasecampTokens from the theme extension
+        // (brief 08), so the harness must supply the basecamp theme.
+        child: MaterialApp(
+          theme: basecampTheme(Brightness.light),
+          home: const ListDetailScreen(listId: 1, title: 'Groceries'),
         ),
       ),
     );

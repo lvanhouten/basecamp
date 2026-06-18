@@ -83,6 +83,25 @@ flutter:
   assets:
     - assets/audio/chime.wav
 
+  # Hanken Grotesk — the brand sans (01-theming-foundation). Used for ALL text,
+  # including product numerics via tabular figures (the design system dropped a
+  # separate monospace face). The .ttf binaries are a manual drop into
+  # assets/fonts/ (same pattern as the chime.wav placeholder); these entries map
+  # the design system's weight tokens (400/500/600/700/800) to those files.
+  fonts:
+    - family: Hanken Grotesk
+      fonts:
+        - asset: assets/fonts/HankenGrotesk-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/HankenGrotesk-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/HankenGrotesk-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/HankenGrotesk-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/HankenGrotesk-ExtraBold.ttf
+          weight: 800
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

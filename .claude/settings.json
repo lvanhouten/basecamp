@@ -1,4 +1,7 @@
 {
+  "worktree": {
+    "baseRef": "head"
+  },
   "permissions": {
     "allow": [
       "Bash(/c/Users/*/AppData/Local/Android/Sdk/platform-tools/adb.exe *)",
@@ -7,6 +10,17 @@
       "Bash(/c/Users/*/dev/flutter/bin/flutter.bat *)",
       "Bash(JAVA_HOME='C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr' /c/Users/*/dev/flutter/bin/flutter.bat *)",
       "Bash(sleep *)",
+      "Bash(git rev-parse *)",
+      "Bash(git log *)",
+      "Bash(git status*)",
+      "Bash(git branch*)",
+      "Bash(git diff *)",
+      "Bash(git show *)",
+      "Bash(git merge-base *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git reset *)",
+      "Bash(git worktree *)",
       "Read(//c/Users/*/.android/avd/flutter_pixel.avd/**)",
       "Read(//c/Users/*/AppData/Local/Temp/**)"
     ]

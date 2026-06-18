@@ -1,0 +1,19 @@
+<!-- @dsCard group="Spacing" viewport="700x160" name="Corner radii" subtitle="Gently rounded. Pills for actions & chips, soft radii on cards." -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; padding:20px 24px; background:var(--surface-app); font-family:var(--font-sans); display:flex; gap:20px; align-items:flex-end; flex-wrap:wrap; }
+  .col { display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .box { width:72px; height:64px; background:var(--surface-card); border:1.5px solid var(--brand-border); box-shadow:var(--shadow-sm); }
+  .box.fill { background:var(--brand-tint); }
+  .tk { font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); }
+  .v { font-size:10px; color:var(--text-tertiary); }
+</style></head>
+<body>
+  <div class="col"><div class="box" style="border-radius:var(--radius-xs)"></div><span class="tk">xs</span><span class="v">6</span></div>
+  <div class="col"><div class="box" style="border-radius:var(--radius-sm)"></div><span class="tk">sm</span><span class="v">10</span></div>
+  <div class="col"><div class="box" style="border-radius:var(--radius-md)"></div><span class="tk">md</span><span class="v">14 · control</span></div>
+  <div class="col"><div class="box" style="border-radius:var(--radius-lg)"></div><span class="tk">lg</span><span class="v">20 · card</span></div>
+  <div class="col"><div class="box" style="border-radius:var(--radius-xl)"></div><span class="tk">xl</span><span class="v">28 · sheet</span></div>
+  <div class="col"><div class="box fill" style="border-radius:var(--radius-full);width:96px"></div><span class="tk">full</span><span class="v">pill</span></div>
+</body></html>

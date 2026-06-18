@@ -1,0 +1,18 @@
+<!-- @dsCard group="Type" viewport="700x200" name="Text roles" subtitle="Semantic roles: display, title, body, label, caption." -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; padding:20px 24px; background:var(--surface-app); color:var(--text-primary); display:flex; flex-direction:column; gap:11px; }
+  .role { display:flex; align-items:baseline; gap:14px; }
+  .tk { width:130px; flex:none; font-family:var(--font-mono); font-size:11px; color:var(--text-tertiary); }
+  .eyebrow { font:var(--type-caption); text-transform:uppercase; letter-spacing:var(--tracking-caps); color:var(--module, var(--brand)); }
+</style></head>
+<body>
+  <div class="role"><span class="tk">--type-display</span><span style="font:var(--type-display)">Good morning</span></div>
+  <div class="role"><span class="tk">--type-title</span><span style="font:var(--type-title)">Today's plan</span></div>
+  <div class="role"><span class="tk">--type-heading</span><span style="font:var(--type-heading)">Evening run</span></div>
+  <div class="role"><span class="tk">--type-subhead</span><span style="font:var(--type-subhead)">Up next</span></div>
+  <div class="role"><span class="tk">--type-body</span><span style="font:var(--type-body)">Tap a module to dive in, or add something new from here.</span></div>
+  <div class="role"><span class="tk">--type-label</span><span style="font:var(--type-label)">Mark complete</span></div>
+  <div class="role"><span class="tk">eyebrow / caps</span><span class="eyebrow">In progress</span></div>
+</body></html>

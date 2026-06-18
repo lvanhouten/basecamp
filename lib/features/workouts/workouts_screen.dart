@@ -1,43 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../../core/widgets/app_drawer.dart';
+import '../../core/widgets/stub_module_body.dart';
 
-/// Workout log — the "Strong" replacement. Starts as a history feed; the real
-/// build adds exercises, sets/reps/weight, and an active-session screen.
+/// Workout log — the "Strong" replacement. A **stub module** today
+/// (CONTEXT.md): a real Modules-grid tile that pushes this placeholder, with no
+/// data layer yet. The real build adds exercises, sets/reps/weight, and an
+/// active-session screen. As a pushed route it gets a back arrow automatically;
+/// no drawer (ADR-0005).
 class WorkoutsScreen extends StatelessWidget {
   const WorkoutsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      drawer: const AppDrawer(),
       appBar: AppBar(title: const Text('Workouts')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.fitness_center,
-                  size: 64, color: theme.colorScheme.primary),
-              const SizedBox(height: 16),
-              Text('No workouts yet', style: theme.textTheme.titleLarge),
-              const SizedBox(height: 8),
-              Text(
-                'Start a session to begin logging sets, reps, and weight.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.outline),
-              ),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        icon: const Icon(Icons.play_arrow),
-        label: const Text('Start workout'),
+      body: const StubModuleBody(
+        icon: Icons.fitness_center_outlined,
+        name: 'Workouts',
       ),
     );
   }

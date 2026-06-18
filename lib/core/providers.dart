@@ -7,7 +7,7 @@ import '../features/clock/data/notification_scheduler.dart';
 import '../features/clock/data/stopwatch_state.dart';
 import '../features/lists/data/lists_dao.dart';
 import '../features/lists/data/lists_repository.dart';
-import 'app_module.dart';
+import 'bar_destination.dart';
 import 'contracts/clock_api.dart';
 import 'contracts/lists_api.dart';
 import 'db/app_db.dart';
@@ -27,18 +27,24 @@ final eventBusProvider = Provider<EventBus>((ref) {
   return bus;
 });
 
-/// Which module the hub is showing. The drawer and the Brief's cards write it;
-/// the shell's IndexedStack reads it. Navigation is hub-level state, not a
-/// remembered route — see ADR-0001.
-class SelectedModule extends Notifier<AppModule> {
+/// Which launcher **bar destination** the shell is showing (ADR-0005). The
+/// [LauncherTabBar] writes it; the shell's IndexedStack reads it. This is the
+/// only navigation the shell remembers — modules are pushed views whose landing
+/// is derived from Drift, not from this notifier (CONTEXT.md / ADR-0005). The
+/// resting default is the Brief.
+///
+/// Replaces ADR-0001's `selectedModuleProvider`: that mixed the Brief and the
+/// modules into one switchable IndexedStack; the bar set and the module set are
+/// now distinct.
+class SelectedBar extends Notifier<BarDestination> {
   @override
-  AppModule build() => AppModule.brief;
+  BarDestination build() => BarDestination.brief;
 
-  void select(AppModule module) => state = module;
+  void select(BarDestination destination) => state = destination;
 }
 
-final selectedModuleProvider =
-    NotifierProvider<SelectedModule, AppModule>(SelectedModule.new);
+final selectedBarProvider =
+    NotifierProvider<SelectedBar, BarDestination>(SelectedBar.new);
 
 /// The Lists module's repository (its full internal surface).
 final listsRepositoryProvider = Provider<ListsRepository>((ref) {
@@ -148,11 +154,12 @@ final chimePlayerProvider = Provider<ChimePlayer>((ref) {
   return DefaultChimePlayer();
 });
 
-/// The Clock module's selected tool tab. The Brief card writes it (via the
-/// `entryTab` precedence) on tap; `ClockScreen` reads it to sync its
-/// [TabController]. A manual in-module tab switch also writes it, and because
-/// the module is kept alive in the hub IndexedStack, that choice persists for
-/// the session (ADR-0004). Defaults to Alarms — the resting landing tab.
+/// The Clock module's selected tool tab. Written on module ENTRY by the
+/// `pushModule` precedence (`module_navigation.dart`) — derived from live Drift
+/// state (ADR-0004), not remembered across hops — before `ClockScreen` mounts,
+/// which seeds its [TabController] from it. A manual in-module tab switch also
+/// writes it, persisting within the pushed session. Defaults to Alarms — the
+/// resting landing tab.
 class SelectedClockTab extends Notifier<ClockTab> {
   @override
   ClockTab build() => ClockTab.alarms;

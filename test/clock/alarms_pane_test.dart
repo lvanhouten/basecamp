@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:basecamp/core/db/app_db.dart';
 import 'package:basecamp/core/providers.dart';
+import 'package:basecamp/core/theme.dart';
 import 'package:basecamp/features/clock/alarm_format.dart' as fmt;
 import 'package:basecamp/features/clock/alarms_pane.dart';
 import 'package:basecamp/features/clock/data/alarm_recurrence.dart';
@@ -118,7 +119,10 @@ void main() {
           clockRepositoryProvider.overrideWithValue(repo),
           alarmsProvider.overrideWith((ref) => repo.watchAlarms()),
         ],
-        child: const MaterialApp(home: AlarmsPane()),
+        child: MaterialApp(
+          theme: basecampTheme(Brightness.light),
+          home: const AlarmsPane(),
+        ),
       ),
     );
     await tester.pump(); // loading frame before the stream emits

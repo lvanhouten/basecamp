@@ -1,0 +1,24 @@
+/* basecamp — spacing
+ * 4px base grid. Use for padding, gap, and layout rhythm.
+ */
+:root {
+  --space-0:  0;
+  --space-1:  2px;
+  --space-2:  4px;
+  --space-3:  8px;
+  --space-4:  12px;
+  --space-5:  16px;
+  --space-6:  20px;
+  --space-7:  24px;
+  --space-8:  32px;
+  --space-9:  40px;
+  --space-10: 48px;
+  --space-11: 64px;
+  --space-12: 80px;
+
+  /* Layout */
+  --gutter:        16px;   /* default screen-edge padding (mobile) */
+  --gutter-tight:  12px;
+  --content-max:   480px;  /* max app content width on larger viewports */
+  --tap-min:       44px;   /* minimum touch target */
+}

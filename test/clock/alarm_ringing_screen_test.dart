@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:basecamp/core/db/app_db.dart';
 import 'package:basecamp/core/providers.dart';
+import 'package:basecamp/core/theme.dart';
 import 'package:basecamp/features/clock/alarm_ringing_screen.dart';
 import 'package:basecamp/features/clock/data/chime_player.dart';
 import 'package:basecamp/features/clock/data/clock_repository.dart';
@@ -89,7 +90,10 @@ void main() {
           chimePlayerProvider.overrideWithValue(chime),
           alarmsProvider.overrideWith((ref) => repo.watchAlarms()),
         ],
-        child: MaterialApp(home: AlarmRingingScreen(alarmId: alarmId)),
+        child: MaterialApp(
+          theme: basecampTheme(Brightness.light),
+          home: AlarmRingingScreen(alarmId: alarmId),
+        ),
       ),
     );
     await tester.pump(); // build + post-frame callback (chime start)

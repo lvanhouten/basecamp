@@ -1,0 +1,36 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Surfaces & text — light / dark" subtitle="Semantic aliases. Build UI against these, never raw scales." -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin:0; padding:18px 22px; font-family:var(--font-sans); display:flex; gap:16px; background:#e9ebef; }
+  .pane { flex:1; border-radius:var(--radius-lg); padding:16px; background:var(--surface-app); box-shadow:var(--shadow-sm); }
+  .tag { font-size:10px; font-weight:700; letter-spacing:var(--tracking-caps); text-transform:uppercase; color:var(--text-tertiary); margin-bottom:12px; }
+  .card { background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:13px; box-shadow:var(--shadow-xs); }
+  .t1 { color:var(--text-primary); font-weight:700; font-size:15px; }
+  .t2 { color:var(--text-secondary); font-size:13px; margin-top:3px; }
+  .t3 { color:var(--text-tertiary); font-size:12px; margin-top:2px; }
+  .pill { display:inline-block; margin-top:10px; background:var(--brand); color:var(--on-brand); font-size:12px; font-weight:600; padding:6px 13px; border-radius:var(--radius-full); }
+  .links { color:var(--text-link); font-size:12px; margin-top:8px; }
+</style></head>
+<body>
+  <div class="pane">
+    <div class="tag">Light</div>
+    <div class="card">
+      <div class="t1">Morning at basecamp</div>
+      <div class="t2">3 lists · 1 workout queued</div>
+      <div class="t3">Updated just now</div>
+      <span class="pill">Start day</span>
+      <div class="links">View all modules →</div>
+    </div>
+  </div>
+  <div class="pane" data-theme="dark">
+    <div class="tag">Dark</div>
+    <div class="card">
+      <div class="t1">Morning at basecamp</div>
+      <div class="t2">3 lists · 1 workout queued</div>
+      <div class="t3">Updated just now</div>
+      <span class="pill">Start day</span>
+      <div class="links">View all modules →</div>
+    </div>
+  </div>
+</body></html>

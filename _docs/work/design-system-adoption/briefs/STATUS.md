@@ -1,0 +1,52 @@
+# Execution status — design-system-adoption
+
+**Run model:** 01–04 ran **non-isolated sequential** (gate + orchestrator-commit). Mid-run fix: set `worktree.baseRef: "head"` in `.claude/settings.json` (commit `9d5a6a1`) — isolation worktrees now branch off feature HEAD instead of `origin/main`, so **wave 4 (05–10) runs as parallel worktree workers → sequential gated merge-by-SHA** (the native execute-briefs flow). AFK run — git + flutter allowlisted in tracked `.claude/settings.json`.
+
+**Wave-4 schedule** (all depend on 01/02/04, all integrated; no deviation forces a brief amendment):
+- Latent coupling: **05 needs `ProfileScreen` from 07** (Brief avatar → Profile) — not in `Depends on`. Mitigation: merge 07 before spawning 05's worktree.
+- 06/07/08/09/10 are file-disjoint (own feature folders) → conflict-free merges. Workers told to put tests in brief-specific files (not shared `widget_test.dart`) and not touch `home_shell.dart` unless required.
+- Batch 1 (parallel): 06, 07, 08, 09. → merge all → Batch 2 (parallel): 05, 10.
+
+| Brief | Status | Wave | Merged SHA | Criteria | Note |
+|---|---|---|---|---|---|
+| 01-theming-foundation       | integrated | 1 | 18b2ba1 | 8/8 | |
+| 02-custom-components        | integrated | 2 | 456ffa5 | 8/8 | API differs from brief sketch — see notes |
+| 03-launcher-tabbar          | integrated | 2 | d6c32bb | 7/7 | |
+| 04-launcher-shell-nav       | integrated | 3 | 38958fb | 8/8 | drawer→launcher shell; nav tests migrated |
+| 05-brief-screen             | integrated | 4b | 4d72231 | 7/7 | parallel worktree; list-level progress; +1 line to widget_test stub |
+| 06-modules-screen           | integrated | 4a | c792b6e | 6/6 | parallel worktree; "New module" affordance label |
+| 07-stub-and-profile-screens | integrated | 4a | 22498a6 | 6/6 | parallel worktree; ProfileScreen created |
+| 08-reskin-lists             | integrated | 4a | 794bc97 | 5/5 | parallel worktree |
+| 09-reskin-clock             | integrated | 4a | 5f461f1 | 5/5 | parallel worktree; kept TabBar tool switcher |
+| 10-reskin-workouts          | integrated | 4b | 960a958 | 3/3 | parallel worktree; reuses 07's StubModuleBody |
+
+Status values: `pending` → `running` → `integrated` | `blocked` | `partial`.
+(Waves are the logical DAG layers; execution is serialized within and across them.)
+
+## Handoff notes
+
+- **01 → [02, 03, 08, 09, 10]:** Read design tokens Material can't express from `BasecampTokens` (`lib/core/tokens.dart`) via `Theme.of(context).extension<BasecampTokens>()!` — `joy/joyTint/joyInk`, `shadows` (xs..xl `List<BoxShadow>`), `radii` (xs/sm/md/lg/xl/xxl/full), `spacing` (s0..s12 + gutter/gutterTight/contentMax/tapMin), `motion` (instant/fast/base/slow/slower durations + standard/easeOut/easeIn/spring curves), dormant `moduleTint`. Don't hardcode. (constraint)
+- **01 → [02, 05, 09]:** Reusable `numericTextStyle({fontSize,fontWeight,height,color})` exported from `lib/core/theme.dart` — applies `FontFeature.tabularFigures()`. Use for timers/stopwatch/stats/durations/alarm times/counts; no monospace face. (constraint)
+- **01 → [07]:** Theme mode = `themeModeProvider` (`NotifierProvider<ThemeModeController, ThemeMode>`) in `lib/core/settings.dart`. Profile calls `ref.read(themeModeProvider.notifier).set(ThemeMode.x)` to change+persist and `ref.watch(themeModeProvider)` to read. Persisted in generic `ModuleData` JSON lane (`settingsModuleId`/`settingsEntryKey`), no schema change. (contract-change)
+- **01 → [all]:** `themeModeProvider` hydrates the persisted mode asynchronously (returns `ThemeMode.system` until the load resolves; an in-flight `set()` is guarded). Tests asserting the hydrated value must await the state transition, not read synchronously. (gotcha)
+- **02 → [05, 06, 07, 08, 09, 10]:** Import all custom components via `package:basecamp/core/widgets/components.dart`. APIs (differ from brief's React sketch): `BcBadge(label:, tone: BadgeTone{neutral,brand,module,success,warning,danger}, dot:)` — named BcBadge to avoid Material's Badge. `ProgressRing(value:, size:, thickness:, label:)` — value accepts fraction [0,1] or percentage (>1 = %), clamps; `label` optional center Widget. `Stat(value:String, unit?, label?)`. `Tag(label:, icon?, onRemove?)`. `BcListItem(leading?, title:String, subtitle?, trailing?, onTap?, done:)` + `BcListItemIcon(IconData)` leading-tile helper + `BcListGroup(children: List<BcListItem>)` for single-hairline grouped rows. `SegmentedControl<T>(options: List<SegmentOption<T>>, value:, onChanged:)` — generic, custom (not Material SegmentedButton). (contract-change)
+- **02 → [any using Badge success/warning]:** `BcBadge` success/warning tones use design-system green/amber constants inside `badge.dart` (`_kSuccess*/_kWarning*`), since 01 surfaced no success/warning ColorScheme roles. danger/brand/module/neutral resolve from the theme. Works as-is; swap to a token if 01's tokens later gain success/warning. (gotcha)
+- **04 → [05, 06]:** Launch modules via the free function `pushModule(BuildContext, WidgetRef, AppModule)` in `lib/core/module_navigation.dart` — NOT bare `Navigator.push` — or domain-state landing (clock entry precedence, ADR-0004) regresses. (contract-change)
+- **04 → [05, 06, 07]:** Four bar destinations are a separate enum `BarDestination` (brief/calendar/activity/modules) in `lib/core/bar_destination.dart`; `selectedBarProvider` drives the shell IndexedStack. Brief is a BarDestination, not an AppModule. 05/06/07 fill in the existing body classes `HomeScreen`/`CalendarScreen`/`ActivityScreen`/`ModulesScreen` (keep class names, or update `home_shell.dart` imports). (contract-change)
+- **04 → [05, 06]:** `pushModule` reads clock count providers synchronously (`ref.read(...).asData?.value`); they resolve to resting default (Alarms) unless WARM. Keep `stopwatchRunningProvider`/`runningTimerCountProvider`/`todaysAlarmCountProvider` warm via `ref.watch(...)` in the Modules grid (and Brief if it launches Clock), else entry-landing falls back to Alarms. (constraint)
+- **04 → [08, 09, 10]:** Module screens (Clock/Lists/Workouts/Goals/Journal) are now PUSHED routes with their own Scaffold+AppBar + automatic back arrow; `drawer:` removed. Do NOT re-add a drawer or hub AppBar. (constraint)
+- **04 → [05, 07]:** `ProfileScreen` does NOT exist yet (not a bar destination, no 04 placeholder). 07 creates it; 05's avatar navigates to it. Orchestrator merges 07 before spawning 05. `BarDestinationPlaceholder` (`lib/core/widgets/bar_destination_placeholder.dart`, not in components barrel) backs Calendar/Activity/Brief placeholders; 07 drops it when replacing those screens. (gotcha)
+- **07 → [05]:** `ProfileScreen` lives at `lib/features/profile/profile_screen.dart` — a `ConsumerWidget`, `const ProfileScreen()`, brings its own `Scaffold`+`AppBar`/back. 05 wires the Brief avatar to it via `Navigator.push(MaterialPageRoute(builder: (_) => const ProfileScreen()))`. Do NOT wrap it in another Scaffold. (contract-change)
+- **09 → [05, 10]:** Reskinned widgets read the `BasecampTokens` theme extension (`theme.extension<BasecampTokens>()!`), so any widget test pumping them in a **bare `MaterialApp` (no theme) throws a null-check**. Pump with `basecampTheme(Brightness.light)` applied. (gotcha — applies to every reskin/screen test)
+- **06 → [future add-flow]:** The "add a module" affordance tile is labelled **"New module"** (section header is "Add a module"); snackbar "Add a module — coming soon". ModulesScreen uses a non-lazy Column so all 5 tiles lay out at once (a lazy list clipped Journal off-screen and broke the shared push test) — keep all tiles laid out if restyling. (constraint)
+- **03 → [04]:** Widget is `LauncherTabBar<T>` (generic). `items: List<LauncherTabItem<T>>` (`LauncherTabItem(value:T, label:String, icon:IconData)`), `value: T`, `onChange: ValueChanged<T>`, optional `centerAction: LauncherCenterAction(icon:IconData, label:String, onClick:VoidCallback)`. The center action has **no `value`** — cannot collide with a destination. It already wraps itself in `SafeArea(top:false)` — do NOT double-wrap. Place in `Scaffold.bottomNavigationBar`. Import via `package:basecamp/core/widgets/components.dart`. (contract-change)
+
+## Deviations
+
+- **01:** Settings persistence lives in new `lib/core/settings.dart` (`SettingsStore` + `themeModeProvider`) writing AppDb's generic `ModuleData` lane directly (`moduleId='settings'`, `entryKey='app'`), not a module DAO — settings are cross-cutting, no schema change. No downstream brief assumed otherwise → no amendments.
+- **01:** Joy accent also mapped to `ColorScheme.tertiary` (so stock Material tertiary-using widgets pick up sun yellow); canonical read remains `BasecampTokens.joy`.
+- **05:** Progress card measures **list-level** progress (N = lists with no open items, M = total lists), not item-level "N of M done" — the lists read models expose no done/total item count, so the literal spec was underivable without a new read model (forbidden). Sourced from `listsProvider` via type inference (no `features/lists` import — respects hard rule 1). Revisit if a done/total item read model is ever added.
+- **05:** Made one additive edit to the shared `test/widget_test.dart` `dbStubs()` helper (`runningTimersProvider` → empty stream) despite the "don't touch widget_test.dart" instruction — the real Brief body consumes that stream and 2 shell tests went red under fake-async without it. Necessary and conflict-free (no other brief touched widget_test.dart). Accepted.
+- **06/07/08/09:** All hit an absolute-path leak into the main checkout early (wrote to `C:\…\basecamp\…` instead of their worktree), self-detected, reverted, and redid in-worktree — worktree commits verified complete before cherry-pick. Batch 2 (05/10) prompts hardened with a relative-paths-only rule; no leak on 10 (05 left a stray `.gitignore` ignore-line in main, discarded at integration).
+- **04:** Deleted `test/clock/clock_brief_card_test.dart` (tested the old HomeScreen Brief module-cards + `_clockLine`, removed when HomeScreen became a placeholder). Entry-precedence coverage migrated to new Domain-state landing tests + `clock_tab_test.dart`. Brief 05 rebuilds the Brief and supplies its coverage — premise holds, no amendment.
+- **04:** Renamed `selectedModuleProvider`→`selectedBarProvider` (now keyed on `BarDestination`). Push/landing tests mount `ModulesScreen` directly under a Navigator (the shell IndexedStack keeps bodies mounted, making tile text non-tappable by default finders).

@@ -1,0 +1,31 @@
+/* basecamp — base
+ * Light reset + sensible document defaults wired to tokens.
+ * Consumers get this automatically by linking styles.css.
+ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font: var(--type-body);
+  color: var(--text-primary);
+  background: var(--surface-app);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, p, figure { margin: 0; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+a { color: var(--text-link); text-decoration: none; }
+
+/* Tabular, lining figures for any numeric readout (timers, stats, counts) */
+.tnum, [data-mono] { font-feature-settings: "tnum" 1, "lnum" 1; font-variant-numeric: tabular-nums lining-nums; }
+
+::selection { background: var(--brand-tint); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

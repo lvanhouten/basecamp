@@ -1,0 +1,16 @@
+/* basecamp — motion
+ * Calm, quick, gentle. Standard easing for most UI; a soft spring for playful
+ * affordances (toggles, FAB, completing a task). No bounce on destructive actions.
+ */
+:root {
+  --dur-instant: 80ms;  /* @kind other */
+  --dur-fast:    140ms; /* @kind other */
+  --dur-base:    220ms; /* @kind other */
+  --dur-slow:    340ms; /* @kind other */
+  --dur-slower:  520ms; /* @kind other */
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);      /* @kind other */ /* default in/out */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);   /* @kind other */ /* enter / reveal */
+  --ease-in:       cubic-bezier(0.4, 0, 1, 1);      /* @kind other */ /* exit */
+  --ease-spring:   cubic-bezier(0.34, 1.4, 0.5, 1); /* @kind other */ /* toggles, pops */
+}

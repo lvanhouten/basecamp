@@ -1,0 +1,12 @@
+/* basecamp — radii
+ * Gently rounded language. Pills for primary actions & chips; soft radii on cards.
+ */
+:root {
+  --radius-xs:   6px;
+  --radius-sm:   10px;
+  --radius-md:   14px;   /* default control / input */
+  --radius-lg:   20px;   /* cards, tiles */
+  --radius-xl:   28px;   /* sheets, large surfaces */
+  --radius-2xl:  36px;
+  --radius-full: 999px;  /* pills, avatars, FABs */
+}

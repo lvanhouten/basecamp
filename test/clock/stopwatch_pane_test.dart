@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:basecamp/core/db/app_db.dart';
 import 'package:basecamp/core/providers.dart';
+import 'package:basecamp/core/theme.dart';
 import 'package:basecamp/features/clock/data/clock_repository.dart';
 import 'package:basecamp/features/clock/data/notification_scheduler.dart';
 import 'package:basecamp/features/clock/data/stopwatch_state.dart';
@@ -79,7 +80,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [clockRepositoryProvider.overrideWithValue(repo)],
-        child: const MaterialApp(home: Scaffold(body: StopwatchPane())),
+        child: MaterialApp(
+          theme: basecampTheme(Brightness.light),
+          home: const Scaffold(body: StopwatchPane()),
+        ),
       ),
     );
     await tester.pump(); // loading frame before the stream emits
