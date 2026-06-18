@@ -44,6 +44,11 @@ List<Override> dbStubs({
       // The Alarms pane (08-alarm-ui) watches alarmsProvider; stub it so the pane
       // doesn't open a live Drift query stream.
       alarmsProvider.overrideWith((ref) => Stream.value(const <AlarmRow>[])),
+      // The Brief (05-brief-screen) watches the running-timers stream for its
+      // "Up next today" rows; stub it so mounting the shell (whose Brief body is
+      // now the real digest) doesn't open a live Drift query stream + leave a
+      // pending timer on dispose.
+      runningTimersProvider.overrideWith((ref) => Stream.value(const <TimerRow>[])),
       // BasecampApp wraps the shell in an AlarmLaunchHost which reads the launch
       // router post-frame; the real one hits the notifications plugin. No-op it.
       alarmLaunchRouterProvider.overrideWithValue(NoopAlarmLaunchRouter()),
