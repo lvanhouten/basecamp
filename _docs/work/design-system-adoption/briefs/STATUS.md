@@ -6,8 +6,8 @@
 |---|---|---|---|---|---|
 | 01-theming-foundation       | integrated | 1 | 18b2ba1 | 8/8 | |
 | 02-custom-components        | integrated | 2 | 456ffa5 | 8/8 | API differs from brief sketch — see notes |
-| 03-launcher-tabbar          | running | 2 | — | — | |
-| 04-launcher-shell-nav       | pending | 3 | — | — | |
+| 03-launcher-tabbar          | integrated | 2 | d6c32bb | 7/7 | |
+| 04-launcher-shell-nav       | running | 3 | — | — | |
 | 05-brief-screen             | pending | 4 | — | — | |
 | 06-modules-screen           | pending | 4 | — | — | |
 | 07-stub-and-profile-screens | pending | 4 | — | — | |
@@ -26,6 +26,7 @@ Status values: `pending` → `running` → `integrated` | `blocked` | `partial`.
 - **01 → [all]:** `themeModeProvider` hydrates the persisted mode asynchronously (returns `ThemeMode.system` until the load resolves; an in-flight `set()` is guarded). Tests asserting the hydrated value must await the state transition, not read synchronously. (gotcha)
 - **02 → [05, 06, 07, 08, 09, 10]:** Import all custom components via `package:basecamp/core/widgets/components.dart`. APIs (differ from brief's React sketch): `BcBadge(label:, tone: BadgeTone{neutral,brand,module,success,warning,danger}, dot:)` — named BcBadge to avoid Material's Badge. `ProgressRing(value:, size:, thickness:, label:)` — value accepts fraction [0,1] or percentage (>1 = %), clamps; `label` optional center Widget. `Stat(value:String, unit?, label?)`. `Tag(label:, icon?, onRemove?)`. `BcListItem(leading?, title:String, subtitle?, trailing?, onTap?, done:)` + `BcListItemIcon(IconData)` leading-tile helper + `BcListGroup(children: List<BcListItem>)` for single-hairline grouped rows. `SegmentedControl<T>(options: List<SegmentOption<T>>, value:, onChanged:)` — generic, custom (not Material SegmentedButton). (contract-change)
 - **02 → [any using Badge success/warning]:** `BcBadge` success/warning tones use design-system green/amber constants inside `badge.dart` (`_kSuccess*/_kWarning*`), since 01 surfaced no success/warning ColorScheme roles. danger/brand/module/neutral resolve from the theme. Works as-is; swap to a token if 01's tokens later gain success/warning. (gotcha)
+- **03 → [04]:** Widget is `LauncherTabBar<T>` (generic). `items: List<LauncherTabItem<T>>` (`LauncherTabItem(value:T, label:String, icon:IconData)`), `value: T`, `onChange: ValueChanged<T>`, optional `centerAction: LauncherCenterAction(icon:IconData, label:String, onClick:VoidCallback)`. The center action has **no `value`** — cannot collide with a destination. It already wraps itself in `SafeArea(top:false)` — do NOT double-wrap. Place in `Scaffold.bottomNavigationBar`. Import via `package:basecamp/core/widgets/components.dart`. (contract-change)
 
 ## Deviations
 
