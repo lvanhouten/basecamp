@@ -1,13 +1,18 @@
 # Execution status — design-system-adoption
 
-**Run model:** sequential, non-isolated, topological order (01→10). `Agent isolation:"worktree"` provisions off `main` in this repo (re-confirmed by probe 2026-06-17), so dependent briefs can't run in worktrees. Each brief-executor runs non-isolated on the feature branch, self-verifies, leaves changes uncommitted; the orchestrator gates (`flutter analyze` + `flutter test`) and owns every commit. No merges (single working tree). AFK run — git allowlisted in tracked `.claude/settings.json` (commit `77ed463`).
+**Run model:** 01–04 ran **non-isolated sequential** (gate + orchestrator-commit). Mid-run fix: set `worktree.baseRef: "head"` in `.claude/settings.json` (commit `9d5a6a1`) — isolation worktrees now branch off feature HEAD instead of `origin/main`, so **wave 4 (05–10) runs as parallel worktree workers → sequential gated merge-by-SHA** (the native execute-briefs flow). AFK run — git + flutter allowlisted in tracked `.claude/settings.json`.
+
+**Wave-4 schedule** (all depend on 01/02/04, all integrated; no deviation forces a brief amendment):
+- Latent coupling: **05 needs `ProfileScreen` from 07** (Brief avatar → Profile) — not in `Depends on`. Mitigation: merge 07 before spawning 05's worktree.
+- 06/07/08/09/10 are file-disjoint (own feature folders) → conflict-free merges. Workers told to put tests in brief-specific files (not shared `widget_test.dart`) and not touch `home_shell.dart` unless required.
+- Batch 1 (parallel): 06, 07, 08, 09. → merge all → Batch 2 (parallel): 05, 10.
 
 | Brief | Status | Wave | Merged SHA | Criteria | Note |
 |---|---|---|---|---|---|
 | 01-theming-foundation       | integrated | 1 | 18b2ba1 | 8/8 | |
 | 02-custom-components        | integrated | 2 | 456ffa5 | 8/8 | API differs from brief sketch — see notes |
 | 03-launcher-tabbar          | integrated | 2 | d6c32bb | 7/7 | |
-| 04-launcher-shell-nav       | running | 3 | — | — | |
+| 04-launcher-shell-nav       | integrated | 3 | 38958fb | 8/8 | drawer→launcher shell; nav tests migrated |
 | 05-brief-screen             | pending | 4 | — | — | |
 | 06-modules-screen           | pending | 4 | — | — | |
 | 07-stub-and-profile-screens | pending | 4 | — | — | |
@@ -26,9 +31,16 @@ Status values: `pending` → `running` → `integrated` | `blocked` | `partial`.
 - **01 → [all]:** `themeModeProvider` hydrates the persisted mode asynchronously (returns `ThemeMode.system` until the load resolves; an in-flight `set()` is guarded). Tests asserting the hydrated value must await the state transition, not read synchronously. (gotcha)
 - **02 → [05, 06, 07, 08, 09, 10]:** Import all custom components via `package:basecamp/core/widgets/components.dart`. APIs (differ from brief's React sketch): `BcBadge(label:, tone: BadgeTone{neutral,brand,module,success,warning,danger}, dot:)` — named BcBadge to avoid Material's Badge. `ProgressRing(value:, size:, thickness:, label:)` — value accepts fraction [0,1] or percentage (>1 = %), clamps; `label` optional center Widget. `Stat(value:String, unit?, label?)`. `Tag(label:, icon?, onRemove?)`. `BcListItem(leading?, title:String, subtitle?, trailing?, onTap?, done:)` + `BcListItemIcon(IconData)` leading-tile helper + `BcListGroup(children: List<BcListItem>)` for single-hairline grouped rows. `SegmentedControl<T>(options: List<SegmentOption<T>>, value:, onChanged:)` — generic, custom (not Material SegmentedButton). (contract-change)
 - **02 → [any using Badge success/warning]:** `BcBadge` success/warning tones use design-system green/amber constants inside `badge.dart` (`_kSuccess*/_kWarning*`), since 01 surfaced no success/warning ColorScheme roles. danger/brand/module/neutral resolve from the theme. Works as-is; swap to a token if 01's tokens later gain success/warning. (gotcha)
+- **04 → [05, 06]:** Launch modules via the free function `pushModule(BuildContext, WidgetRef, AppModule)` in `lib/core/module_navigation.dart` — NOT bare `Navigator.push` — or domain-state landing (clock entry precedence, ADR-0004) regresses. (contract-change)
+- **04 → [05, 06, 07]:** Four bar destinations are a separate enum `BarDestination` (brief/calendar/activity/modules) in `lib/core/bar_destination.dart`; `selectedBarProvider` drives the shell IndexedStack. Brief is a BarDestination, not an AppModule. 05/06/07 fill in the existing body classes `HomeScreen`/`CalendarScreen`/`ActivityScreen`/`ModulesScreen` (keep class names, or update `home_shell.dart` imports). (contract-change)
+- **04 → [05, 06]:** `pushModule` reads clock count providers synchronously (`ref.read(...).asData?.value`); they resolve to resting default (Alarms) unless WARM. Keep `stopwatchRunningProvider`/`runningTimerCountProvider`/`todaysAlarmCountProvider` warm via `ref.watch(...)` in the Modules grid (and Brief if it launches Clock), else entry-landing falls back to Alarms. (constraint)
+- **04 → [08, 09, 10]:** Module screens (Clock/Lists/Workouts/Goals/Journal) are now PUSHED routes with their own Scaffold+AppBar + automatic back arrow; `drawer:` removed. Do NOT re-add a drawer or hub AppBar. (constraint)
+- **04 → [05, 07]:** `ProfileScreen` does NOT exist yet (not a bar destination, no 04 placeholder). 07 creates it; 05's avatar navigates to it. Orchestrator merges 07 before spawning 05. `BarDestinationPlaceholder` (`lib/core/widgets/bar_destination_placeholder.dart`, not in components barrel) backs Calendar/Activity/Brief placeholders; 07 drops it when replacing those screens. (gotcha)
 - **03 → [04]:** Widget is `LauncherTabBar<T>` (generic). `items: List<LauncherTabItem<T>>` (`LauncherTabItem(value:T, label:String, icon:IconData)`), `value: T`, `onChange: ValueChanged<T>`, optional `centerAction: LauncherCenterAction(icon:IconData, label:String, onClick:VoidCallback)`. The center action has **no `value`** — cannot collide with a destination. It already wraps itself in `SafeArea(top:false)` — do NOT double-wrap. Place in `Scaffold.bottomNavigationBar`. Import via `package:basecamp/core/widgets/components.dart`. (contract-change)
 
 ## Deviations
 
 - **01:** Settings persistence lives in new `lib/core/settings.dart` (`SettingsStore` + `themeModeProvider`) writing AppDb's generic `ModuleData` lane directly (`moduleId='settings'`, `entryKey='app'`), not a module DAO — settings are cross-cutting, no schema change. No downstream brief assumed otherwise → no amendments.
 - **01:** Joy accent also mapped to `ColorScheme.tertiary` (so stock Material tertiary-using widgets pick up sun yellow); canonical read remains `BasecampTokens.joy`.
+- **04:** Deleted `test/clock/clock_brief_card_test.dart` (tested the old HomeScreen Brief module-cards + `_clockLine`, removed when HomeScreen became a placeholder). Entry-precedence coverage migrated to new Domain-state landing tests + `clock_tab_test.dart`. Brief 05 rebuilds the Brief and supplies its coverage — premise holds, no amendment.
+- **04:** Renamed `selectedModuleProvider`→`selectedBarProvider` (now keyed on `BarDestination`). Push/landing tests mount `ModulesScreen` directly under a Navigator (the shell IndexedStack keeps bodies mounted, making tile text non-tappable by default finders).
